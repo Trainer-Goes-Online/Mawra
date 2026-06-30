@@ -1,0 +1,130 @@
+/* ============================================================
+   THANK-YOU / CALL-CONFIRMED PAGE
+   Mirrors the landing hero's dark-forest language. Tokens come from
+   funnel.css (loaded globally by the root layout). Written mobile-first.
+   ============================================================ */
+
+.ty-page {
+  position: relative;
+  min-height: 100vh;
+  padding: 26px 18px 64px;
+  background:
+    radial-gradient(ellipse 90% 40% at 50% 0%, rgba(10, 80, 194, 0.16), transparent 60%),
+    radial-gradient(ellipse 80% 40% at 50% 100%, rgba(10, 80, 194, 0.07), transparent 60%),
+    var(--night);
+  color: #14140f;
+  overflow: hidden;
+}
+.ty-page::before {
+  content: "";
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(10, 80, 194, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10, 80, 194, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center top, black 0%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at center top, black 0%, transparent 78%);
+}
+.ty-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 740px;
+  margin: 0 auto;
+}
+
+/* Brand logo */
+.ty-nav { display: flex; justify-content: center; padding: 2px 0 20px; }
+.ty-nav .brand-logo { width: 72px; height: 72px; object-fit: contain; display: block; }
+
+/* Header */
+.ty-head { text-align: center; margin-bottom: 26px; }
+.ty-eyebrow {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 7px 16px 7px 9px;
+  background: rgba(10, 80, 194, 0.12);
+  border: 1px solid rgba(10, 80, 194, 0.45);
+  border-radius: 999px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--accent-soft);
+  margin-bottom: 18px;
+}
+.ty-h1 {
+  margin: 0;
+  font-family: "Newsreader", serif;
+  font-weight: 500;
+  font-size: clamp(27px, 7vw, 42px);
+  line-height: 1.13;
+  letter-spacing: -0.02em;
+  color: #14140f;
+}
+.ty-h1 .accent {
+  font-style: italic;
+  background: linear-gradient(180deg, #bcd6f7 0%, #0a50c2 55%, #083a8f 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* Cards */
+.ty-card {
+  margin-top: 18px;
+  padding: 22px 18px;
+  border: 1px solid rgba(20, 20, 15, 0.12);
+  background: rgba(20, 20, 15, 0.03);
+  border-radius: 16px;
+}
+.ty-card-title {
+  margin: 0 0 14px;
+  font-family: "Newsreader", serif;
+  font-weight: 500;
+  font-size: clamp(19px, 5.2vw, 24px);
+  letter-spacing: -0.01em;
+  color: #14140f;
+}
+
+/* Checklist */
+.ty-checklist { list-style: none; margin: 0; padding: 0; }
+.ty-checklist li {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 11px 0;
+  line-height: 1.55;
+  font-size: 15px;
+  color: rgba(20, 20, 15, 0.86);
+}
+.ty-checklist li + li { border-top: 1px solid rgba(20, 20, 15, 0.08); }
+.ty-tick {
+  flex-shrink: 0;
+  margin-top: 1px;
+  width: 21px; height: 21px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(10, 80, 194, 0.3), 0 4px 10px -4px rgba(10, 80, 194, 0.6);
+}
+.ty-tick svg { width: 12px; height: 12px; }
+.ty-eyebrow .ty-tick {
+  width: 17px; height: 17px;
+  /* Live "ping": a green ring that expands and fades, like the landing
+     page's live dot. */
+  box-shadow: 0 0 0 0 rgba(10, 80, 194, 0.55);
+  animation: ty-tick-ping 1.6s ease-out infinite;
+}
+.ty-eyebrow .ty-tick svg { width: 10px; height: 10px; }
+@keyframes ty-tick-ping {
+  0%   { box-shadow: 0 0 0 0 rgba(10, 80, 194, 0.55); }
+  70%  { box-shadow: 0 0 0 6px rgba(10, 80, 194, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(10, 80, 194, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ty-eyebrow .ty-tick { animation: none; }
+}
+
+/* Tablet / desktop */
+@media (min-width: 640px) {
+  .ty-page { padding: 42px 32px 88px; }
+  .ty-nav .brand-logo { width: 84px; height: 84px; }
+  .ty-card { padding: 28px 28px; margin-top: 20px; }
+  .ty-checklist li { font-size: 16px; padding: 12px 0; }
+}

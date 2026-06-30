@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 26" role="img" aria-label="Net Banking">
+  <g fill="none" stroke="#1c3d14" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M28 6 L40 2 L52 6"/>
+    <line x1="27" y1="6" x2="53" y2="6"/>
+    <line x1="30" y1="9" x2="30" y2="18"/>
+    <line x1="36" y1="9" x2="36" y2="18"/>
+    <line x1="44" y1="9" x2="44" y2="18"/>
+    <line x1="50" y1="9" x2="50" y2="18"/>
+    <line x1="26" y1="21" x2="54" y2="21"/>
+  </g>
+</svg>

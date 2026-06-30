@@ -1,0 +1,253 @@
+/* ============================================================
+   LEGAL PAGES — Privacy, Terms, Refund
+   Dark forest + gold + cream. Tokens inherited from funnel.css
+   (loaded globally via the root layout). Written mobile-first:
+   base rules target small screens, min-width queries scale up.
+   ============================================================ */
+
+.legal-page {
+  position: relative;
+  min-height: 100vh;
+  /* Mobile-first padding — generous side gutters tightened for small screens */
+  padding: 28px 18px 72px;
+  background:
+    radial-gradient(ellipse 90% 40% at 50% 0%, rgba(10, 80, 194, 0.13), transparent 60%),
+    radial-gradient(ellipse 80% 40% at 50% 100%, rgba(10, 80, 194, 0.07), transparent 60%),
+    var(--night);
+  color: #14140f;
+  overflow: hidden;
+}
+.legal-page::before {
+  content: "";
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(10, 80, 194, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10, 80, 194, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center top, black 0%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at center top, black 0%, transparent 78%);
+}
+
+.legal-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* === Back link ============================================== */
+.legal-topnav { margin-bottom: 26px; }
+.legal-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(20, 20, 15, 0.6);
+  text-decoration: none;
+  padding: 8px 14px 8px 12px;
+  border: 1px solid rgba(20, 20, 15, 0.16);
+  border-radius: 999px;
+  transition: color .2s ease, border-color .2s ease;
+}
+.legal-back:hover {
+  color: var(--gold);
+  border-color: rgba(10, 80, 194, 0.5);
+}
+.legal-back .ar { line-height: 1; }
+
+/* === Header ================================================= */
+.legal-head {
+  text-align: center;
+  margin-bottom: 36px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid rgba(20, 20, 15, 0.12);
+}
+.legal-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 15px 7px 12px;
+  background: rgba(10, 80, 194, 0.1);
+  border: 1px solid rgba(10, 80, 194, 0.45);
+  border-radius: 999px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+  margin-bottom: 20px;
+}
+.legal-eyebrow .dot {
+  font-size: 9px;
+  line-height: 1;
+  color: var(--gold);
+}
+.legal-h1 {
+  margin: 0;
+  font-family: "Newsreader", serif;
+  font-weight: 500;
+  font-size: clamp(30px, 8vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: #14140f;
+}
+.legal-updated {
+  margin: 16px 0 0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(20, 20, 15, 0.5);
+}
+
+/* === Body / prose =========================================== */
+.legal-body {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: rgba(20, 20, 15, 0.82);
+}
+.legal-intro {
+  font-family: "Newsreader", serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: rgba(20, 20, 15, 0.9);
+  margin: 0 0 8px;
+}
+.legal-section {
+  /* Reset the global `section { padding: 80px 0 }` from funnel.css that would
+     otherwise add a huge gap between numbered sections; spacing is controlled
+     by margin-top alone. */
+  padding: 0;
+  margin-top: 26px;
+}
+.legal-section:first-child { margin-top: 0; }
+.legal-section h2 {
+  font-family: "Newsreader", serif;
+  font-weight: 500;
+  font-size: clamp(20px, 5.5vw, 25px);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: #14140f;
+  margin: 0 0 12px;
+  /* Number + title layout */
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.legal-section h2 .legal-num {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--accent-soft);
+  flex-shrink: 0;
+  position: relative;
+  top: -2px;
+}
+.legal-section h3 {
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0;
+  color: #14140f;
+  margin: 22px 0 8px;
+}
+.legal-section p { margin: 0 0 14px; }
+.legal-section p:last-child { margin-bottom: 0; }
+
+.legal-section ul {
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.legal-section li {
+  position: relative;
+  padding-left: 22px;
+  margin-bottom: 10px;
+}
+.legal-section li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 11px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(10, 80, 194, 0.6);
+}
+.legal-section li strong { color: #14140f; font-weight: 600; }
+
+.legal-body a {
+  color: var(--gold-soft);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(10, 80, 194, 0.4);
+  transition: color .2s ease, border-color .2s ease;
+}
+.legal-body a:hover { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* Callout box for the guarantee / key promise */
+.legal-callout {
+  margin: 22px 0;
+  padding: 18px 20px;
+  border: 1px solid rgba(10, 80, 194, 0.3);
+  background: rgba(10, 80, 194, 0.06);
+  border-radius: 12px;
+}
+.legal-callout p { margin: 0; }
+.legal-callout p + p { margin-top: 10px; }
+.legal-callout strong { color: var(--gold); }
+
+/* === Footer ================================================= */
+.legal-foot {
+  margin-top: 56px;
+  padding-top: 26px;
+  border-top: 1px solid rgba(20, 20, 15, 0.12);
+  text-align: center;
+}
+.legal-foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 18px;
+  margin-bottom: 18px;
+}
+.legal-foot-links a {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(20, 20, 15, 0.6);
+  text-decoration: none;
+  transition: color .2s ease;
+}
+.legal-foot-links a:hover { color: var(--gold); }
+.legal-foot-links a.is-current { color: var(--gold-soft); }
+.legal-foot-copy {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(20, 20, 15, 0.4);
+  line-height: 1.6;
+}
+
+/* === Mobile: centre the page chrome (top nav + footer) ====== */
+/* Base rules are mobile-first, so these centre on small screens and are
+   reset to left/desktop defaults in the min-width query below. The policy
+   prose itself stays left-aligned for readability. */
+.legal-topnav { text-align: center; }
+.legal-foot { text-align: center; }
+.legal-foot-links { justify-content: center; }
+
+/* === Scale up for tablet / desktop ========================== */
+@media (min-width: 640px) {
+  .legal-page { padding: 48px 32px 96px; }
+  .legal-head { margin-bottom: 44px; padding-bottom: 38px; }
+  .legal-body { font-size: 16px; }
+  .legal-section { margin-top: 30px; }
+  .legal-topnav { text-align: left; }
+}
