@@ -8,7 +8,47 @@ import {
   type Attribution,
 } from "../_lib/attribution";
 import { setMetaAdvancedMatching } from "../_lib/analytics";
-import { COUNTRIES, flagEmoji } from "../_lib/country";
+import { COUNTRIES } from "../_lib/country";
+import ThemedSelect, { type ThemedOption } from "./ThemedSelect";
+
+// Option lists for the themed dropdowns.
+const COUNTRY_OPTIONS: ThemedOption[] = COUNTRIES.map((c) => ({
+  value: c.iso,
+  label: `${c.name} · ${c.dial}`,
+  short: `${c.iso} ${c.dial}`,
+}));
+const WEIGHT_OPTIONS: ThemedOption[] = [
+  { value: "Less than 10 kg", label: "Less than 10 kg" },
+  { value: "10–20 kg", label: "10–20 kg" },
+  { value: "20–40 kg", label: "20–40 kg" },
+  { value: "40+ kg", label: "40+ kg" },
+];
+const CHALLENGE_OPTIONS: ThemedOption[] = [
+  { value: "Emotional / stress eating", label: "Emotional / stress eating" },
+  { value: "PCOS, thyroid or insulin resistance", label: "PCOS, thyroid or insulin resistance" },
+  { value: "Lost weight before but regained it", label: "Lost weight before but regained it" },
+  { value: "Low energy and confidence", label: "Low energy and confidence" },
+  { value: "Something else", label: "Something else" },
+];
+
+type FieldErrors = Partial<Record<keyof FormState, string>>;
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const PHONE_RE = /^[0-9]{6,15}$/;
+
+function validateForm(form: FormState): FieldErrors {
+  const e: FieldErrors = {};
+  if (!form.first_name.trim()) e.first_name = "Please enter your first name.";
+  if (!form.last_name.trim()) e.last_name = "Please enter your last name.";
+  if (!form.email.trim()) e.email = "Please enter your email address.";
+  else if (!EMAIL_RE.test(form.email.trim())) e.email = "Enter a valid email address.";
+  if (!form.phone.trim()) e.phone = "Please enter your phone number.";
+  else if (!PHONE_RE.test(form.phone.trim())) e.phone = "Enter a valid phone number (digits only).";
+  if (!form.country_iso) e.country_iso = "Select your country.";
+  if (!form.weight_to_lose) e.weight_to_lose = "Please select an option.";
+  if (!form.biggest_challenge) e.biggest_challenge = "Please select an option.";
+  return e;
+}
 
 type FormState = {
   first_name: string;
@@ -40,6 +80,7 @@ export default function LeadModal() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(initialState);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   // Attribution kept in state so the UTMs render as hidden <input>s in the form.
@@ -98,14 +139,21 @@ export default function LeadModal() {
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (error) setError(null);
+    if (fieldErrors[key]) setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
   }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (formRef.current && !formRef.current.checkValidity()) {
-      formRef.current.reportValidity();
+    // Validate every field by type; block submit and surface inline errors.
+    const errs = validateForm(form);
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      const firstKey = Object.keys(errs)[0];
+      const el = formRef.current?.querySelector<HTMLElement>(`[data-field="${firstKey}"]`);
+      (el?.querySelector("input, button") as HTMLElement | null)?.focus();
       return;
     }
+    setFieldErrors({});
     setSubmitting(true);
     setError(null);
     try {
@@ -189,94 +237,88 @@ export default function LeadModal() {
           <input type="hidden" name="referrer" value={attribution.referrer || ""} readOnly />
 
           <div className="lead-grid">
-            <div className="lead-field">
+            <div className={`lead-field${fieldErrors.first_name ? " has-error" : ""}`} data-field="first_name">
               <label htmlFor="lead_first">First Name <span className="req">*</span></label>
               <input
                 id="lead_first"
                 type="text"
                 placeholder="First Name"
-                required
+                autoComplete="given-name"
                 value={form.first_name}
                 onChange={(e) => update("first_name", e.target.value)}
               />
+              {fieldErrors.first_name && <p className="field-error">{fieldErrors.first_name}</p>}
             </div>
-            <div className="lead-field">
+            <div className={`lead-field${fieldErrors.last_name ? " has-error" : ""}`} data-field="last_name">
               <label htmlFor="lead_last">Last Name <span className="req">*</span></label>
               <input
                 id="lead_last"
                 type="text"
                 placeholder="Last Name"
-                required
+                autoComplete="family-name"
                 value={form.last_name}
                 onChange={(e) => update("last_name", e.target.value)}
               />
+              {fieldErrors.last_name && <p className="field-error">{fieldErrors.last_name}</p>}
             </div>
-            <div className="lead-field lead-field-full">
+            <div className={`lead-field lead-field-full${fieldErrors.email ? " has-error" : ""}`} data-field="email">
               <label htmlFor="lead_email">Email Address <span className="req">*</span></label>
               <input
                 id="lead_email"
                 type="email"
+                inputMode="email"
                 placeholder="Email Address"
-                required
+                autoComplete="email"
                 value={form.email}
                 onChange={(e) => update("email", e.target.value)}
               />
+              {fieldErrors.email && <p className="field-error">{fieldErrors.email}</p>}
             </div>
-            <div className="lead-field lead-field-full">
+            <div className={`lead-field lead-field-full${fieldErrors.phone || fieldErrors.country_iso ? " has-error" : ""}`} data-field="phone">
               <label htmlFor="lead_phone">Phone Number <span className="req">*</span></label>
-              <div className="lead-phone-group">
-                <select
-                  aria-label="Country"
+              <div className={`lead-phone-group${fieldErrors.phone ? " has-error" : ""}`}>
+                <ThemedSelect
+                  ariaLabel="Country"
                   value={form.country_iso}
-                  onChange={(e) => update("country_iso", e.target.value)}
-                >
-                  {COUNTRIES.map((c) => (
-                    <option key={c.iso} value={c.iso} title={c.name}>
-                      {flagEmoji(c.iso)} {c.dial}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => update("country_iso", v)}
+                  options={COUNTRY_OPTIONS}
+                  invalid={!!fieldErrors.country_iso}
+                />
                 <input
                   id="lead_phone"
                   type="tel"
+                  inputMode="numeric"
                   placeholder="Phone Number"
-                  required
-                  pattern="[0-9]{6,15}"
+                  autoComplete="tel"
                   value={form.phone}
-                  onChange={(e) => update("phone", e.target.value)}
+                  onChange={(e) => update("phone", e.target.value.replace(/[^0-9]/g, ""))}
                 />
               </div>
+              {fieldErrors.phone && <p className="field-error">{fieldErrors.phone}</p>}
             </div>
-            <div className="lead-field lead-field-full">
+            <div className={`lead-field lead-field-full${fieldErrors.weight_to_lose ? " has-error" : ""}`} data-field="weight_to_lose">
               <label htmlFor="lead_weight">How much weight do you want to lose? <span className="req">*</span></label>
-              <select
+              <ThemedSelect
                 id="lead_weight"
-                required
+                ariaLabel="How much weight do you want to lose?"
                 value={form.weight_to_lose}
-                onChange={(e) => update("weight_to_lose", e.target.value)}
-              >
-                <option value="" disabled>Select an option</option>
-                <option value="Less than 10 kg">Less than 10 kg</option>
-                <option value="10–20 kg">10–20 kg</option>
-                <option value="20–40 kg">20–40 kg</option>
-                <option value="40+ kg">40+ kg</option>
-              </select>
+                onChange={(v) => update("weight_to_lose", v)}
+                options={WEIGHT_OPTIONS}
+                invalid={!!fieldErrors.weight_to_lose}
+              />
+              {fieldErrors.weight_to_lose && <p className="field-error">{fieldErrors.weight_to_lose}</p>}
             </div>
-            <div className="lead-field lead-field-full">
+            <div className={`lead-field lead-field-full${fieldErrors.biggest_challenge ? " has-error" : ""}`} data-field="biggest_challenge">
               <label htmlFor="lead_challenge">What&apos;s your biggest struggle right now? <span className="req">*</span></label>
-              <select
+              <ThemedSelect
                 id="lead_challenge"
-                required
+                ariaLabel="What's your biggest struggle right now?"
                 value={form.biggest_challenge}
-                onChange={(e) => update("biggest_challenge", e.target.value)}
-              >
-                <option value="" disabled>Select an option</option>
-                <option value="Emotional / stress eating">Emotional / stress eating</option>
-                <option value="PCOS, thyroid or insulin resistance">PCOS, thyroid or insulin resistance</option>
-                <option value="Lost weight before but regained it">Lost weight before but regained it</option>
-                <option value="Low energy & confidence">Low energy &amp; confidence</option>
-                <option value="Something else">Something else</option>
-              </select>
+                onChange={(v) => update("biggest_challenge", v)}
+                options={CHALLENGE_OPTIONS}
+                invalid={!!fieldErrors.biggest_challenge}
+              />
+              {fieldErrors.biggest_challenge && <p className="field-error">{fieldErrors.biggest_challenge}</p>}
             </div>
           </div>
 

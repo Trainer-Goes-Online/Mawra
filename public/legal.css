@@ -88,7 +88,7 @@
 }
 .legal-h1 {
   margin: 0;
-  font-family: "Newsreader", serif;
+  font-family: "Bebas Neue", "Oswald", "Helvetica Neue", sans-serif;
   font-weight: 500;
   font-size: clamp(30px, 8vw, 46px);
   line-height: 1.08;
@@ -111,7 +111,7 @@
   color: rgba(20, 20, 15, 0.82);
 }
 .legal-intro {
-  font-family: "Newsreader", serif;
+  font-family: "Bebas Neue", "Oswald", "Helvetica Neue", sans-serif;
   font-size: 17px;
   line-height: 1.6;
   color: rgba(20, 20, 15, 0.9);
@@ -126,7 +126,7 @@
 }
 .legal-section:first-child { margin-top: 0; }
 .legal-section h2 {
-  font-family: "Newsreader", serif;
+  font-family: "Bebas Neue", "Oswald", "Helvetica Neue", sans-serif;
   font-weight: 500;
   font-size: clamp(20px, 5.5vw, 25px);
   line-height: 1.2;
@@ -149,7 +149,7 @@
   top: -2px;
 }
 .legal-section h3 {
-  font-family: "Geist", sans-serif;
+  font-family: "Manrope", "Helvetica Neue", system-ui, sans-serif;
   font-weight: 600;
   font-size: 15px;
   letter-spacing: 0;

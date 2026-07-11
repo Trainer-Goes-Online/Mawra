@@ -51,10 +51,10 @@ export default function BookACallEmbed({ calendlyUrl }: { calendlyUrl: string })
   url.searchParams.set("embed_type", "Inline");
   url.searchParams.set("hide_event_type_details", "0");
   url.searchParams.set("hide_gdpr_banner", "1");
-  // Theme params (Calendly supports them on the URL)
+  // Theme params (Calendly supports them on the URL) — light to match site
   url.searchParams.set("background_color", "ffffff");
-  url.searchParams.set("text_color", "14140f");
-  url.searchParams.set("primary_color", "0A50C2");
+  url.searchParams.set("text_color", "0f172a");
+  url.searchParams.set("primary_color", "3b82f6");
 
   return (
     <div className="cal-frame" id="cal">
@@ -62,7 +62,7 @@ export default function BookACallEmbed({ calendlyUrl }: { calendlyUrl: string })
         src={url.toString()}
         width="100%"
         height="100%"
-        title="Pick a date & time with Mawra"
+        title="Pick a date and time with Mawra"
         loading="lazy"
         style={{ border: 0, display: "block" }}
       />
