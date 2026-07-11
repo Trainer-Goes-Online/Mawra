@@ -39,7 +39,7 @@ export default function PrivacyPage() {
         <ul>
           <li><strong>Calendly</strong> — to manage scheduling.</li>
           <li><strong>Google Sheets</strong> — to store your enquiry securely.</li>
-          <li><strong>Analytics &amp; ad platforms</strong> — for measurement, where enabled.</li>
+          <li><strong>Analytics and ad platforms</strong> — for measurement, where enabled.</li>
         </ul>
         <p>We never sell your personal information.</p>
       </section>

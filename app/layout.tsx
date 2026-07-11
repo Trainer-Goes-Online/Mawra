@@ -4,9 +4,9 @@ import UtmTracker from "./_components/UtmTracker";
 
 export function generateMetadata(): Metadata {
   return {
-    title: "Coach Mawra · Lose The Weight & Keep It Off For Life",
+    title: "Coach Mawra · Lose The Weight and Keep It Off For Life",
     description:
-      "Women's Fat Loss & Identity Transformation Specialist · TEDx Speaker · 500+ Transformations · 60+ Kilos Lost & Maintained.",
+      "Women's Fat Loss and Identity Transformation Specialist · TEDx Speaker · 500+ Transformations · 60+ Kilos Lost and Maintained.",
     icons: {
       icon: "/assets/favicon.ico",
     },
@@ -40,11 +40,11 @@ export default function RootLayout({
           crossOrigin=""
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400;1,6..72,500&family=Geist:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
-        <link rel="preload" as="image" href="/assets/mawra.webp" fetchPriority="high" />
-        <link rel="stylesheet" href="/funnel.css?v=23" />
+        <link rel="preload" as="image" href="/assets/mawra_hero.png" fetchPriority="high" />
+        <link rel="stylesheet" href="/funnel.css?v=45" />
       </head>
       <body>
         {/* Google Analytics (gtag.js) — only if NEXT_PUBLIC_GA_ID is set */}

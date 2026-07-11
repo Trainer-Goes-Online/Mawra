@@ -26,7 +26,7 @@ export default function LegalShell({
 }: LegalShellProps) {
   return (
     <>
-      <link rel="stylesheet" href="/legal.css" />
+      <link rel="stylesheet" href="/legal.css?v=2" />
       <main className="legal-page">
         <div className="legal-wrap">
           <nav className="legal-topnav">

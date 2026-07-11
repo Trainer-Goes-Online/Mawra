@@ -316,3 +316,27 @@
   window.addEventListener('resize', onScroll);
   update();
 })();
+
+// ============ Scroll progress bar (golden, top of page) ============
+(function() {
+  const bar = document.createElement('div');
+  bar.className = 'scroll-prog';
+  const fill = document.createElement('i');
+  bar.appendChild(fill);
+  document.body.appendChild(bar);
+
+  let ticking = false;
+  function update() {
+    ticking = false;
+    const doc = document.documentElement;
+    const max = (doc.scrollHeight - doc.clientHeight) || 1;
+    const p = Math.min(Math.max(window.scrollY / max, 0), 1);
+    fill.style.width = (p * 100).toFixed(2) + '%';
+  }
+  function onScroll() {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  update();
+})();

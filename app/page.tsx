@@ -1,9 +1,12 @@
 import Script from "next/script";
 import FooterDisclaimer from "./_components/FooterDisclaimer";
 import LeadModal from "./_components/LeadModal";
-import TestiSlider, { type SlideItem } from "./_components/TestiSlider";
+import { type SlideItem } from "./_components/TestiSlider";
+import TestiVideoSlider, { type VideoItem } from "./_components/TestiVideoSlider";
+import MarqueeSlider from "./_components/MarqueeSlider";
+import StoryVideos, { type StoryVideo } from "./_components/StoryVideos";
 
-const IMG = "/assets/mawra.webp"; // hero portrait of Coach Mawra
+const IMG = "/assets/mawra_hero.png"; // hero banner of Coach Mawra (16:9)
 const CTA_LABEL = "Book Your FREE Assessment Call";
 
 // Before/after client results — Mandawi, Sahana, Leonna (with captions) first,
@@ -20,7 +23,7 @@ const CLIENT_RESULTS: SlideItem[] = [
     src: "/assets/results/2.webp",
     name: "Sahana",
     quote:
-      "Lost 10+ kg of post-pregnancy weight — now does strength training & pilates, travels without food guilt, and won awards as an entrepreneur.",
+      "Lost 10+ kg of post-pregnancy weight — now does strength training and pilates, travels without food guilt, and won awards as an entrepreneur.",
     alt: "Sahana — before and after transformation with Coach Mawra",
   },
   {
@@ -35,26 +38,52 @@ const CLIENT_RESULTS: SlideItem[] = [
     alt: "Client before and after transformation with Coach Mawra",
   },
   {
-    src: "/assets/results/5.webp",
+    src: "/assets/results/Rashmi.jpeg",
     name: "Rashmi",
     alt: "Rashmi — before and after transformation with Coach Mawra",
   },
 ];
 
-// 6 written testimonials — raw screenshots in /public/assets/reviews.
+// Video testimonials — real client videos. The card thumbnail is the video's
+// first frame; clicking opens the modal player. Add more items here as they come.
+const VIDEO_TESTIMONIALS: VideoItem[] = [
+  {
+    poster: "",
+    name: "Surbhi",
+    tag: "In her own words",
+    alt: "Surbhi's video testimonial for Coach Mawra",
+    src: "https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Mawra/Surbhi.MOV",
+  },
+  {
+    poster: "",
+    name: "Rashmi Ji",
+    tag: "In her own words",
+    alt: "Rashmi Ji's video testimonial for Coach Mawra",
+    src: "https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Mawra/Rashmi_Ji.MOV",
+  },
+];
+
+// Written testimonials — WhatsApp chat screenshots in /public/assets/reviews.
 const WRITTEN_TESTIMONIALS: SlideItem[] = Array.from({ length: 6 }, (_, i) => ({
   src: `/assets/reviews/${i + 1}.webp`,
   alt: "Written testimonial from a Coach Mawra client",
 }));
 
+// "Watched Mawra's Story" YouTube videos — paste each video's YouTube link
+// into `youtube` (watch?v=…, youtu.be/…, or the 11-char id) to enable playback.
+const STORY_VIDEOS: StoryVideo[] = [
+  { thumb: "/assets/story/watch-1.webp", alt: "Mawra's transformation story video", title: "Mawra's Transformation Story", youtube: "" },
+  { thumb: "/assets/story/watch-2.webp", alt: "How Mawra lost 61 kg after being bullied and fat shamed", title: "How Mawra Lost 61 Kg", youtube: "" },
+];
+
 // 8 framework points with contextual icons (timeline).
 const FRAMEWORK: { icon: IconName; title: string; body: string }[] = [
   { icon: "nutrition", title: "Personalised Nutrition Strategy", body: "Built around your lifestyle, preferences and health challenges." },
   { icon: "heart", title: "Emotional Eating Support", body: "Understand what's driving the urge to eat when you're not physically hungry." },
-  { icon: "identity", title: "Behaviour & Identity Coaching", body: "Address the habits and beliefs that keep pulling you back to old versions of yourself." },
+  { icon: "identity", title: "Behaviour and Identity Coaching", body: "Address the habits and beliefs that keep pulling you back to old versions of yourself." },
   { icon: "training", title: "Training That Fits Real Life", body: "A plan designed around your schedule, not someone else's." },
-  { icon: "medical", title: "Support For PCOS, Thyroid & Insulin Resistance", body: "Strategies adapted to your body's unique needs." },
-  { icon: "mind", title: "Counsellor-Led Mindset Support", body: "Work through the thoughts & emotional patterns that traditional weight loss programmes ignore." },
+  { icon: "medical", title: "Support For PCOS, Thyroid and Insulin Resistance", body: "Strategies adapted to your body's unique needs." },
+  { icon: "mind", title: "Counsellor-Led Mindset Support", body: "Work through the thoughts and emotional patterns that traditional weight loss programmes ignore." },
   { icon: "habit", title: "Progressive Habit Building", body: "Small changes that become permanent instead of overwhelming rules you can't sustain." },
   { icon: "target", title: "Long-Term Transformation Focus", body: "Designed to help you keep the weight off, not just lose it." },
 ];
@@ -113,9 +142,24 @@ export default function Page() {
   return (
     <>
       <main id="top">
-        {/* ============ TOP STRIP ============ */}
+        {/* ============ TOP STRIP (moving marquee) ============ */}
         <div className="urgency-strip">
-          <span className="live">LIVE · Limited free assessment calls this week</span>
+          <div className="urgency-marquee">
+            <div className="urgency-track" aria-hidden="true">
+              {Array.from({ length: 2 }).map((_, dup) => (
+                <div className="um-group" key={dup} style={{ display: "inline-flex" }}>
+                  <span className="um-item"><span className="um-dot" /><b>LIVE</b> · Limited free assessment calls this week</span>
+                  <span className="um-sep">✦</span>
+                  <span className="um-item">Only a few spots left this week</span>
+                  <span className="um-sep">✦</span>
+                  <span className="um-item">500+ women transformed for life</span>
+                  <span className="um-sep">✦</span>
+                  <span className="um-item">TEDx Speaker · 60+ Kilos Lost and Maintained</span>
+                  <span className="um-sep">✦</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* ============ HERO ============ */}
@@ -123,30 +167,29 @@ export default function Page() {
           <div className="wrap">
             <div className="hero-funnel-inner">
               <span className="eyebrow-pill">
-                <span className="dot"></span>For Women With Significant Weight To Lose · Battling PCOS, Thyroid Or Insulin Resistance · Feeling Stuck In A Cycle Of Emotional Eating, Failed Diets &amp; Lost Confidence
+                <span className="dot"></span>For Women With Significant Weight To Lose · Battling PCOS, Thyroid Or Insulin Resistance · Feeling Stuck In A Cycle Of Emotional Eating, Failed Diets and Lost Confidence
               </span>
 
               <h1 className="hero-h1">
-                Lose 20, 30, Even <span className="accent-italic">40+ Kilos,</span><br className="br-d" />
-                {" "}<span className="gold-box">Keep It Off For Life</span><br className="br-d" />
-                {" "}<span className="accent-italic">&amp; Love The Woman In The Mirror Again</span>
+                Lose 20, 30, 40, Even <span className="accent-italic">60+ Kilos,</span> Keep It Off For Life<br className="br-d" />
+                {" "}And Love The Woman In The Mirror Again
               </h1>
 
               {/* Mawra's picture (placeholder) */}
               <div className="vsl-wrap hero-portrait-wrap">
                 <div className="vsl-box hero-portrait" id="vsl">
-                  <img src={IMG} className="vsl-image" alt="Coach Mawra" width={760} height={1485} fetchPriority="high" decoding="async" />
+                  <img src={IMG} className="vsl-image" alt="Coach Mawra — Transformation Coach" width={1672} height={941} fetchPriority="high" decoding="async" />
                 </div>
               </div>
 
               {/* Credentials — below the image */}
               <div className="hero-creds">
                 <h2 className="hero-name">Coach Mawra</h2>
-                <p className="hero-role">Women&apos;s Fat Loss &amp; Identity Transformation Specialist</p>
+                <p className="hero-role">Women&apos;s Fat Loss and Identity Transformation Specialist</p>
                 <div className="hero-cred-pills">
                   <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>TEDx Speaker</span>
                   <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>500+ Transformations</span>
-                  <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>60+ Kilos Lost &amp; Maintained</span>
+                  <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>60+ Kilos Lost and Maintained</span>
                 </div>
               </div>
 
@@ -161,12 +204,12 @@ export default function Page() {
         </section>
 
         {/* ============ STORY ============ */}
-        <section className="sec-band-paper" data-screen-label="02 Story">
+        <section className="sec-band-paper sec-dark" data-screen-label="02 Story">
           <div className="wrap">
             <div className="sec-head reveal">
               <span className="sec-label">Story Section</span>
               <h2 className="sec-h2">Before Mawra Helped <span className="accent">500+ Women</span><br />Change Their Lives,</h2>
-              <p className="sec-lede" style={{ fontFamily: "'Newsreader', serif", fontStyle: "italic" }}>She Had To Change Her Own.</p>
+              <p className="sec-lede" style={{ fontFamily: "'Manrope', sans-serif", fontStyle: "italic" }}>She Had To Change Her Own.</p>
             </div>
 
             {/* Single 2-column section: before/after photo on the left,
@@ -177,7 +220,7 @@ export default function Page() {
               </div>
 
               <div className="story-compare">
-                <span className="sec-label xform-label">Then &amp; Now</span>
+                <span className="sec-label xform-label">Then and Now</span>
                 <div className="xform">
                   <div className="xform-head">
                     <span className="xform-h then">Then</span>
@@ -185,10 +228,10 @@ export default function Page() {
                   </div>
                   {([
                     ["115 kilos", "55 kilos"],
-                    ["Lost 100+ kilos & gained it back", "60+ kilos lost & maintained"],
+                    ["Lost 100+ kilos and gained it back", "60+ kilos lost and maintained"],
                     ["Battled emotional eating", "Helps women break the cycle"],
                     ["Thought she'd never escape the cycle", "Helped 500+ women transform for life"],
-                    ["Felt stuck for 15 years", "Featured on TEDx & Josh Talks"],
+                    ["Felt stuck for 15 years", "Featured on TEDx and Josh Talks"],
                   ] as [string, string][]).map(([then, now], i) => (
                     <div className="xform-row" key={i}>
                       <div className="xform-then">{then}</div>
@@ -202,13 +245,8 @@ export default function Page() {
             <div className="sec-head reveal" style={{ marginTop: 56 }}>
               <h2 className="sec-h2" style={{ fontSize: "clamp(22px, 3vw, 30px)" }}>Over <span className="accent">7 Lakh People</span> Have Watched Mawra&apos;s Story.</h2>
             </div>
-            <div className="proof-grid reveal-stagger" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", maxWidth: 760, margin: "0 auto" }}>
-              <article className="case-card">
-                <div className="case-video"><img className="case-thumb" src="/assets/story/watch-1.webp" width={760} height={475} alt="Mawra's transformation story video" loading="lazy" /></div>
-              </article>
-              <article className="case-card">
-                <div className="case-video"><img className="case-thumb" src="/assets/story/watch-2.webp" width={760} height={475} alt="How Mawra lost 61 kg after being bullied and fat shamed" loading="lazy" /></div>
-              </article>
+            <div className="reveal">
+              <StoryVideos items={STORY_VIDEOS} />
             </div>
 
             <div className="sec-head reveal" style={{ marginTop: 56, marginBottom: 28 }}>
@@ -234,14 +272,23 @@ export default function Page() {
             </div>
 
             <div className="reveal">
-              <TestiSlider items={CLIENT_RESULTS} variant="results-track" />
+              <TestiVideoSlider items={VIDEO_TESTIMONIALS} />
             </div>
 
             <div className="sec-head reveal" style={{ marginTop: 56 }}>
-              <h2 className="sec-h2" style={{ fontSize: "clamp(22px, 3vw, 30px)" }}>Real Words From <span className="accent">Real Women.</span></h2>
+              <h2 className="sec-h2" style={{ fontSize: "clamp(22px, 3vw, 30px)" }}>Their <span className="accent">Transformations.</span></h2>
+              <p className="sec-lede">Real before-and-afters from women who kept it off.</p>
             </div>
             <div className="reveal">
-              <TestiSlider items={WRITTEN_TESTIMONIALS} variant="reviews-track" intervalMs={2600} />
+              <MarqueeSlider items={CLIENT_RESULTS} cardClass="result-card" showName />
+            </div>
+
+            <div className="sec-head reveal" style={{ marginTop: 56 }}>
+              <h2 className="sec-h2" style={{ fontSize: "clamp(22px, 3vw, 30px)" }}>Straight From Their <span className="accent">Chats.</span></h2>
+              <p className="sec-lede">Unfiltered messages from women mid-transformation. Tap to read.</p>
+            </div>
+            <div className="reveal">
+              <MarqueeSlider items={WRITTEN_TESTIMONIALS} cardClass="chat-card" />
             </div>
 
             <div className="faq-closing reveal" style={{ marginTop: 48 }}>
@@ -251,7 +298,7 @@ export default function Page() {
         </section>
 
         {/* ============ QUALIFICATION ============ */}
-        <section className="sec-band-paper-2" data-screen-label="04 Qualify">
+        <section className="sec-band-paper-2 sec-dark" data-screen-label="04 Qualify">
           <div className="wrap narrow">
             <div className="sec-head reveal">
               <span className="sec-label">Qualification Section</span>
@@ -301,12 +348,12 @@ export default function Page() {
         </section>
 
         {/* ============ DETAILS ABOUT THE CALL (numbered boxes) ============ */}
-        <section className="sec-band-paper" data-screen-label="06 The Call">
+        <section className="sec-band-paper sec-dark" data-screen-label="06 The Call">
           <div className="wrap narrow">
             <div className="sec-head reveal">
               <span className="sec-label">Details About The Call Section</span>
               <h2 className="sec-h2">Book Your <span className="accent">Assessment Call.</span></h2>
-              <p className="sec-lede" style={{ fontFamily: "'Newsreader', serif", fontStyle: "italic" }}>Here&apos;s what you&apos;ll walk away with.</p>
+              <p className="sec-lede" style={{ fontFamily: "'Manrope', sans-serif", fontStyle: "italic" }}>Here&apos;s what you&apos;ll walk away with.</p>
             </div>
 
             <div className="numbox-grid reveal">
@@ -338,7 +385,7 @@ export default function Page() {
         {/* ============ FOOTER ============ */}
         <section className="final-cta-block" id="book-form" data-screen-label="07 Footer">
           <div className="foot-bottom">
-            <span>Coach Mawra · Fat Loss &amp; Identity Transformation</span>
+            <span>Coach Mawra · Fat Loss and Identity Transformation</span>
             <span className="foot-ornament" aria-hidden="true">✦</span>
             <span className="foot-links">
               <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
@@ -356,7 +403,7 @@ export default function Page() {
       </main>
 
       <LeadModal />
-      <Script src="/funnel.js?v=5" strategy="afterInteractive" />
+      <Script src="/funnel.js?v=6" strategy="afterInteractive" />
     </>
   );
 }

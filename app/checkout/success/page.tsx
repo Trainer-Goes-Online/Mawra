@@ -59,7 +59,7 @@ export default async function CheckoutSuccess({
             )}
 
             <p style={{
-              fontFamily: "Newsreader, serif",
+              fontFamily: "Manrope, sans-serif",
               fontSize: 16,
               lineHeight: 1.55,
               color: "rgba(20, 20, 15, 0.74)",

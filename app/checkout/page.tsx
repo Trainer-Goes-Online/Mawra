@@ -16,7 +16,7 @@ export default function CheckoutPage() {
   const amountPaise = getAmountPaise();
   return (
     <>
-      <link rel="stylesheet" href="/checkout.css?v=3" />
+      <link rel="stylesheet" href="/checkout.css?v=4" />
 
       {/* Top secure-checkout strip */}
       <header className="secure-bar">
@@ -74,7 +74,7 @@ export default function CheckoutPage() {
           <CheckoutClient priceLabel={price} amountPaise={amountPaise} />
 
           <p className="checkout-finetext">
-            By completing this booking you agree to our <a href="/terms" className="finetext-link">Terms</a> &amp; <a href="/privacy" className="finetext-link">Privacy Policy</a>. We never share your details. Your call slot is confirmed only after payment.
+            By completing this booking you agree to our <a href="/terms" className="finetext-link">Terms</a> and <a href="/privacy" className="finetext-link">Privacy Policy</a>. We never share your details. Your call slot is confirmed only after payment.
           </p>
         </div>
       </main>
