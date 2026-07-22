@@ -48,18 +48,25 @@ const CLIENT_RESULTS: SlideItem[] = [
 // first frame; clicking opens the modal player. Add more items here as they come.
 const VIDEO_TESTIMONIALS: VideoItem[] = [
   {
-    poster: "",
+    poster: "/assets/video-testimonials/surbhi.jpg",
     name: "Surbhi",
     tag: "In her own words",
     alt: "Surbhi's video testimonial for Coach Mawra",
     src: "https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Mawra/Surbhi.MOV",
   },
   {
-    poster: "",
+    poster: "/assets/video-testimonials/rashmi.jpg",
     name: "Rashmi Ji",
     tag: "In her own words",
     alt: "Rashmi Ji's video testimonial for Coach Mawra",
     src: "https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Mawra/Rashmi_Ji.MOV",
+  },
+  {
+    poster: "/assets/video-testimonials/trupti.jpg",
+    name: "Trupti",
+    tag: "In her own words",
+    alt: "Trupti's video testimonial for Coach Mawra",
+    src: "https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Mawra/Trupti%20testimonial.mp4",
   },
 ];
 
@@ -72,8 +79,8 @@ const WRITTEN_TESTIMONIALS: SlideItem[] = Array.from({ length: 6 }, (_, i) => ({
 // "Watched Mawra's Story" YouTube videos — paste each video's YouTube link
 // into `youtube` (watch?v=…, youtu.be/…, or the 11-char id) to enable playback.
 const STORY_VIDEOS: StoryVideo[] = [
-  { thumb: "/assets/story/watch-1.webp", alt: "Mawra's transformation story video", title: "Mawra's Transformation Story", youtube: "" },
-  { thumb: "/assets/story/watch-2.webp", alt: "How Mawra lost 61 kg after being bullied and fat shamed", title: "How Mawra Lost 61 Kg", youtube: "" },
+  { thumb: "/assets/story/watch-1.webp", alt: "Mawra's transformation story video", title: "Mawra's Transformation Story", youtube: "https://youtu.be/5PoVQn36qY4" },
+  { thumb: "/assets/story/watch-2.webp", alt: "How Mawra lost 61 kg after being bullied and fat shamed", title: "How Mawra Lost 61 Kg", youtube: "https://youtu.be/6Hwcdl0r_r8" },
 ];
 
 // 8 framework points with contextual icons (timeline).

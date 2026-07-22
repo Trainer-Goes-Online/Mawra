@@ -136,3 +136,95 @@ export async function sendMetaCapiEvent(params: MetaCapiParams) {
   }
   return res.json();
 }
+
+// ============================================================================
+// FREE registration CAPI — fired when the popup lead form is submitted.
+// Sends TWO events in one call: a standard event (FREE_STANDARD_EVENT, e.g.
+// "CompleteRegistration") and a custom event (FREE_CUSTOM_EVENT, e.g.
+// "FreeLeadRegistration"). Env-configurable so the names can change without a
+// code deploy. Best-effort: logs and swallows errors so it never fails a lead.
+// ============================================================================
+
+export type MetaLeadParams = {
+  eventId: string; // unique per lead (the lead_id) — used as event_id for dedup
+  email: string;
+  phone: string; // dial code + number, raw
+  firstName: string;
+  lastName: string;
+  city: string;
+  countryCode: string; // 2-letter ISO (e.g. "IN")
+  eventSourceUrl: string;
+  fbc?: string;
+  fbp?: string;
+  clientIp?: string;
+  clientUserAgent?: string;
+};
+
+export async function sendMetaLeadCapi(params: MetaLeadParams): Promise<void> {
+  const pixelId = process.env.META_PIXEL_ID;
+  const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
+  if (!pixelId || !accessToken) {
+    console.warn("META_PIXEL_ID / META_CAPI_ACCESS_TOKEN not set — skipping free-registration CAPI.");
+    return;
+  }
+
+  // Standard event name: strip spaces so "Complete Registration" resolves to
+  // Meta's real standard event "CompleteRegistration".
+  const standardEvent = (process.env.FREE_STANDARD_EVENT || "CompleteRegistration").replace(/\s+/g, "");
+  const customEvent = process.env.FREE_CUSTOM_EVENT || "FreeLeadRegistration";
+
+  const normalisedEmail = params.email.trim().toLowerCase();
+  const rawPhone = params.phone.replace(/\D/g, "");
+  const fn = params.firstName.trim().toLowerCase();
+  const ln = params.lastName.trim().toLowerCase();
+  const ct = params.city.trim().toLowerCase().replace(/[^a-z]/g, "");
+  const country = params.countryCode.trim().toLowerCase();
+
+  const userData = {
+    em: [sha256(normalisedEmail)],
+    ...(rawPhone && { ph: [sha256(rawPhone)] }),
+    ...(fn && { fn: [sha256(fn)] }),
+    ...(ln && { ln: [sha256(ln)] }),
+    ...(ct && { ct: [sha256(ct)] }),
+    ...(country && { country: [sha256(country)] }),
+    external_id: [sha256(normalisedEmail)],
+    ...(params.fbc && { fbc: params.fbc }),
+    ...(params.fbp && { fbp: params.fbp }),
+    ...(params.clientUserAgent && { client_user_agent: params.clientUserAgent }),
+    ...(params.clientIp && { client_ip_address: params.clientIp }),
+  };
+
+  const base = {
+    event_time: Math.floor(Date.now() / 1000),
+    event_id: params.eventId,
+    action_source: "website" as const,
+    event_source_url: toOrigin(params.eventSourceUrl),
+    user_data: userData,
+  };
+
+  const events = [
+    { ...base, event_name: standardEvent },
+    { ...base, event_name: customEvent },
+  ];
+
+  const payload: Record<string, unknown> = { data: events };
+  if (process.env.META_TEST_EVENT_CODE) {
+    payload.test_event_code = process.env.META_TEST_EVENT_CODE;
+  }
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${pixelId}/events?access_token=${accessToken}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+    if (!res.ok) {
+      console.error("Meta CAPI (free registration)", res.status, await res.text());
+    }
+  } catch (err) {
+    console.error("Meta CAPI (free registration) error:", err);
+  }
+}

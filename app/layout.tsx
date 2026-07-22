@@ -2,13 +2,34 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import UtmTracker from "./_components/UtmTracker";
 
+const SITE_URL = "https://vsl.transformationsandbeyond.com";
+const SITE_NAME = "Coach Mawra";
+const DEFAULT_TITLE = "Coach Mawra · Lose The Weight and Keep It Off For Life";
+const DEFAULT_DESC =
+  "Women's Fat Loss and Identity Transformation Specialist · TEDx Speaker · 500+ Transformations · 60+ Kilos Lost and Maintained.";
+
 export function generateMetadata(): Metadata {
   return {
-    title: "Coach Mawra · Lose The Weight and Keep It Off For Life",
-    description:
-      "Women's Fat Loss and Identity Transformation Specialist · TEDx Speaker · 500+ Transformations · 60+ Kilos Lost and Maintained.",
+    metadataBase: new URL(SITE_URL),
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESC,
+    applicationName: SITE_NAME,
     icons: {
-      icon: "/assets/favicon.ico",
+      icon: "/assets/logo.png?v=2",
+      shortcut: "/assets/logo.png?v=2",
+      apple: "/assets/logo.png?v=2",
+    },
+    // No og/twitter title|description here on purpose: each page's own
+    // title/description auto-populates them, and the image comes from the
+    // per-route opengraph-image.tsx files.
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      locale: "en_US",
+      url: SITE_URL,
+    },
+    twitter: {
+      card: "summary_large_image",
     },
   };
 }
@@ -18,10 +39,9 @@ export function generateMetadata(): Metadata {
 // script below AND exposes it to client code via window.__tgoMetaPixelId, so
 // app/_lib/analytics.ts can re-init the pixel for Advanced Matching.
 const META_PIXEL_ID = process.env.META_PIXEL_ID || "";
-// Analytics IDs are env-driven so each deployment uses its own (and nothing
-// loads if they're unset — keeps the page fast and avoids leaking data).
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
-const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID || "";
+// Analytics IDs — hardcoded for this site.
+const GA_ID = "G-8T83FFN96Z";
+const CLARITY_ID = "xlql36i41k";
 
 export default function RootLayout({
   children,
@@ -44,7 +64,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <link rel="preload" as="image" href="/assets/mawra_hero.png" fetchPriority="high" />
-        <link rel="stylesheet" href="/funnel.css?v=45" />
+        <link rel="stylesheet" href="/funnel.css?v=46" />
       </head>
       <body>
         {/* Google Analytics (gtag.js) — only if NEXT_PUBLIC_GA_ID is set */}
