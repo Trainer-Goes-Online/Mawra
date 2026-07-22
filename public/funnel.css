@@ -5266,3 +5266,9 @@ body {
   box-shadow: 0 11px 24px -4px rgba(15,23,42,.55), inset 0 2px 3px rgba(255,255,255,.65), 0 0 42px -2px rgba(59,130,246,.85) !important;
 }
 .vmodal-close:active, .testi-lightbox-close:active { transform: scale(.94) !important; }
+
+/* Chat screenshots in the slider: FIT the whole screenshot (no zoom/crop) */
+.mcard.chat-card { width: 250px; aspect-ratio: 9 / 15; background: #fff; }
+.mcard.chat-card img { object-fit: contain !important; object-position: 50% 50% !important; }
+.sec-dark .mcard.chat-card { background: #0f1a2e; }
+@media (max-width: 720px){ .mcard.chat-card { width: 200px; } }

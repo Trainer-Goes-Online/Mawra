@@ -75,17 +75,38 @@ export default function TestiVideoSlider({ items }: { items: VideoItem[] }) {
                 onClick={() => openAt(origIdx)}
                 aria-label={`Play ${it.name || "video testimonial"}`}
               >
-                {it.src ? (
-                  // First frame of the video as the thumbnail (#t=0.1 forces a
-                  // frame to render on browsers that honour media fragments).
+                {it.poster ? (
+                  // Pre-extracted poster frame. Using a plain <img> keeps the
+                  // strip reliable and light — browsers cap concurrent video
+                  // decoders, so duplicated <video> thumbnails often never paint.
+                  <img
+                    className="vcard-video"
+                    src={it.poster}
+                    alt=""
+                    // Eager: only a few unique posters, reused across every
+                    // duplicate in the marquee — lazy leaves off-screen cards blank.
+                    loading="eager"
+                    decoding="async"
+                    aria-hidden="true"
+                  />
+                ) : it.src ? (
+                  // Fallback when no poster exists: first frame from the video.
                   <video
                     className="vcard-video"
-                    src={`${it.src}#t=0.1`}
+                    src={`${it.src}#t=0.5`}
                     muted
                     playsInline
                     preload="metadata"
                     tabIndex={-1}
                     aria-hidden="true"
+                    onLoadedMetadata={(e) => {
+                      const v = e.currentTarget;
+                      try {
+                        if (v.currentTime < 0.4) v.currentTime = 0.5;
+                      } catch {
+                        /* ignore */
+                      }
+                    }}
                   />
                 ) : (
                   <span className="vcard-ph" aria-hidden="true">
@@ -127,6 +148,7 @@ export default function TestiVideoSlider({ items }: { items: VideoItem[] }) {
                 <video
                   key={active.src}
                   src={active.src}
+                  poster={active.poster || undefined}
                   controls
                   autoPlay
                   playsInline
