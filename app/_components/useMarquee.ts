@@ -45,17 +45,23 @@ export function useMarquee(
       return (el.scrollWidth + gap) / 2;
     }
 
-    function normalize() {
+    // Wrap a raw scroll value into [0, period) BEFORE assigning it. Doing the
+    // wrap first matters for reverse (negative-speed) scrolling: the browser
+    // clamps scrollLeft to >= 0, so decrementing past 0 would otherwise pin it
+    // at 0 and never loop.
+    function wrap(value: number): number {
       const p = period();
-      if (p <= 0) return;
-      if (el.scrollLeft >= p) el.scrollLeft -= p;
-      else if (el.scrollLeft < 0) el.scrollLeft += p;
+      if (p <= 0) return Math.max(0, value);
+      return ((value % p) + p) % p;
+    }
+
+    function normalize() {
+      el.scrollLeft = wrap(el.scrollLeft);
     }
 
     function tick() {
       if (!paused && !dragging && !reduce) {
-        el.scrollLeft += speed;
-        normalize();
+        el.scrollLeft = wrap(el.scrollLeft + speed);
       }
       raf = requestAnimationFrame(tick);
     }
@@ -95,8 +101,7 @@ export function useMarquee(
         }
       }
       if (dragging) {
-        el.scrollLeft = startScroll - dx;
-        normalize();
+        el.scrollLeft = wrap(startScroll - dx);
       }
     };
     const endDrag = () => {
