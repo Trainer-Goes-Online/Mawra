@@ -51,7 +51,7 @@ export function renderOg({
             height: 540,
             borderRadius: 540,
             background:
-              "radial-gradient(circle, rgba(59,130,246,0.30), transparent 70%)",
+              "radial-gradient(circle, rgba(220,38,38,0.30), transparent 70%)",
             display: "flex",
           }}
         />
@@ -65,7 +65,7 @@ export function renderOg({
             height: 420,
             borderRadius: 420,
             background:
-              "radial-gradient(circle, rgba(34,211,238,0.14), transparent 70%)",
+              "radial-gradient(circle, rgba(248,113,113,0.14), transparent 70%)",
             display: "flex",
           }}
         />
@@ -78,13 +78,13 @@ export function renderOg({
               width: 16,
               height: 16,
               borderRadius: 16,
-              background: "#3B82F6",
+              background: "#DC2626",
             }}
           />
           <div
             style={{
               display: "flex",
-              color: "#93B8F7",
+              color: "#FCA5A5",
               fontSize: 27,
               fontWeight: 800,
               letterSpacing: 5,
@@ -99,7 +99,7 @@ export function renderOg({
           <div
             style={{
               display: "flex",
-              color: "#60A5FA",
+              color: "#EF4444",
               fontSize: 25,
               fontWeight: 700,
               letterSpacing: 3,
@@ -114,8 +114,8 @@ export function renderOg({
                 style={{
                   display: "flex",
                   color: accentWords.has(w.toLowerCase().replace(/[.,]/g, ""))
-                    ? "#3B82F6"
-                    : "#F8FAFC",
+                    ? "#DC2626"
+                    : "#FEF2F2",
                   fontSize: 72,
                   fontWeight: 800,
                   lineHeight: 1.04,
@@ -148,7 +148,7 @@ export function renderOg({
             width: 130,
             height: 9,
             borderRadius: 9,
-            background: "linear-gradient(90deg, #1E40AF, #3B82F6, #22D3EE)",
+            background: "linear-gradient(90deg, #B91C1C, #DC2626, #F87171)",
           }}
         />
       </div>

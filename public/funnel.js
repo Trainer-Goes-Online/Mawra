@@ -217,6 +217,9 @@
   const vsl = document.getElementById('vsl');
   if (!vsl) return;
   const src = vsl.getAttribute('data-video');
+  // No embedded video on this layout (the hero banner is a plain link to the
+  // Then/Now section) — bail out so we never preventDefault its navigation.
+  if (!src) return;
 
   function start() {
     if (vsl.dataset.playing === '1' || !src) return;

@@ -60,11 +60,11 @@ export default function RootLayout({
           crossOrigin=""
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
-        <link rel="preload" as="image" href="/assets/mawra_hero.png" fetchPriority="high" />
-        <link rel="stylesheet" href="/funnel.css?v=46" />
+        <link rel="preload" as="image" href="/assets/mawra_hero_2.webp" fetchPriority="high" />
+        <link rel="stylesheet" href="/funnel.css?v=54" />
       </head>
       <body>
         {/* Google Analytics (gtag.js) — only if NEXT_PUBLIC_GA_ID is set */}

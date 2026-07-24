@@ -24,10 +24,10 @@ export default function ThankYouPage() {
               <h1 className="sec-h2" style={{ marginTop: 20 }}>
                 Booking <span className="accent">Confirmed.</span>
               </h1>
-              <p className="sec-lede" style={{ fontFamily: "'Manrope', sans-serif", fontStyle: "italic", marginTop: 10 }}>
+              <p className="sec-lede" style={{ fontFamily: "'DM Sans', sans-serif", fontStyle: "italic", marginTop: 10 }}>
                 Your free assessment call with Coach Mawra is locked in.
               </p>
-              <p style={{ maxWidth: 560, margin: "18px auto 0", fontFamily: "'Manrope', sans-serif", fontSize: 15.5, lineHeight: 1.7, color: "rgba(71,85,105,0.82)", textAlign: "center" }}>
+              <p style={{ maxWidth: 560, margin: "18px auto 0", fontFamily: "'DM Sans', sans-serif", fontSize: 15.5, lineHeight: 1.7, color: "rgba(71,85,105,0.82)", textAlign: "center" }}>
                 The Zoom link and call details are on their way to your inbox — check your
                 spam folder if you don&apos;t see them in a few minutes.
               </p>
@@ -71,7 +71,7 @@ export default function ThankYouPage() {
               </p>
             </div>
 
-            <div className="hero-cred-pills reveal" style={{ justifyContent: "center", marginTop: 32 }}>
+            <div className="hero-cred-pills reveal" style={{ justifyContent: "center", marginTop: 52 }}>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>TEDx Speaker</span>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>500+ Transformations</span>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>60+ Kilos Lost and Maintained</span>

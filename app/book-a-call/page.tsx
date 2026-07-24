@@ -51,7 +51,7 @@ export default async function BookACallPage({
               <h1 className="sec-h2" style={{ marginTop: 20 }}>
                 Pick Your <span className="accent">Slot.</span>
               </h1>
-              <p className="sec-lede" style={{ fontFamily: "'Manrope', sans-serif", fontStyle: "italic", marginTop: 8 }}>
+              <p className="sec-lede" style={{ fontFamily: "'DM Sans', sans-serif", fontStyle: "italic", marginTop: 8 }}>
                 60 honest minutes with Mawra — your Zoom link lands in your inbox the moment you book.
               </p>
             </div>
@@ -66,7 +66,7 @@ export default async function BookACallPage({
               {calendlyUrl ? (
                 <BookACallEmbed calendlyUrl={calendlyUrl} />
               ) : (
-                <p style={{ textAlign: "center", fontFamily: "'Manrope', sans-serif", color: "rgba(71,85,105,0.78)", padding: "40px 0" }}>
+                <p style={{ textAlign: "center", fontFamily: "'DM Sans', sans-serif", color: "rgba(71,85,105,0.78)", padding: "40px 0" }}>
                   Booking calendar coming soon. (Set <code>NEXT_PUBLIC_CALENDLY_URL</code> to enable.)
                 </p>
               )}
@@ -109,7 +109,7 @@ export default async function BookACallPage({
               </p>
             </div>
 
-            <div className="hero-cred-pills reveal" style={{ justifyContent: "center", marginTop: 32 }}>
+            <div className="hero-cred-pills reveal" style={{ justifyContent: "center", marginTop: 52 }}>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>TEDx Speaker</span>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>500+ Transformations</span>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>60+ Kilos Lost and Maintained</span>

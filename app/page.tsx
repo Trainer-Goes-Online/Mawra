@@ -5,9 +5,10 @@ import { type SlideItem } from "./_components/TestiSlider";
 import TestiVideoSlider, { type VideoItem } from "./_components/TestiVideoSlider";
 import MarqueeSlider from "./_components/MarqueeSlider";
 import StoryVideos, { type StoryVideo } from "./_components/StoryVideos";
+import UrgencyTimer from "./_components/UrgencyTimer";
 
-const IMG = "/assets/mawra_hero.png"; // hero banner of Coach Mawra (16:9)
-const CTA_LABEL = "Book Your FREE Assessment Call";
+const IMG = "/assets/mawra_hero_2.webp"; // hero banner of Coach Mawra (16:9)
+const CTA_LABEL = "Book Your FREE Identity Transformation Call";
 
 // Before/after client results — Mandawi, Sahana, Leonna (with captions) first,
 // then the remaining two. Images in /public/assets/results.
@@ -42,7 +43,14 @@ const CLIENT_RESULTS: SlideItem[] = [
     name: "Rashmi",
     alt: "Rashmi — before and after transformation with Coach Mawra",
   },
+  { src: "/assets/results/6.webp", alt: "Client before and after transformation with Coach Mawra" },
+  { src: "/assets/results/7.webp", alt: "Client before and after transformation with Coach Mawra" },
+  { src: "/assets/results/8.webp", alt: "Client before and after transformation with Coach Mawra" },
 ];
+
+// Split the transformations into two rows scrolling in opposite directions.
+const RESULTS_ROW_A = CLIENT_RESULTS.filter((_, i) => i % 2 === 0);
+const RESULTS_ROW_B = CLIENT_RESULTS.filter((_, i) => i % 2 === 1);
 
 // Video testimonials — real client videos. The card thumbnail is the video's
 // first frame; clicking opens the modal player. Add more items here as they come.
@@ -85,14 +93,14 @@ const STORY_VIDEOS: StoryVideo[] = [
 
 // 8 framework points with contextual icons (timeline).
 const FRAMEWORK: { icon: IconName; title: string; body: string }[] = [
-  { icon: "nutrition", title: "Personalised Nutrition Strategy", body: "Built around your lifestyle, preferences and health challenges." },
-  { icon: "heart", title: "Emotional Eating Support", body: "Understand what's driving the urge to eat when you're not physically hungry." },
-  { icon: "identity", title: "Behaviour and Identity Coaching", body: "Address the habits and beliefs that keep pulling you back to old versions of yourself." },
-  { icon: "training", title: "Training That Fits Real Life", body: "A plan designed around your schedule, not someone else's." },
-  { icon: "medical", title: "Support For PCOS, Thyroid and Insulin Resistance", body: "Strategies adapted to your body's unique needs." },
-  { icon: "mind", title: "Counsellor-Led Mindset Support", body: "Work through the thoughts and emotional patterns that traditional weight loss programmes ignore." },
-  { icon: "habit", title: "Progressive Habit Building", body: "Small changes that become permanent instead of overwhelming rules you can't sustain." },
-  { icon: "target", title: "Long-Term Transformation Focus", body: "Designed to help you keep the weight off, not just lose it." },
+  { icon: "nutrition", title: "Personalised Nutrition Strategy", body: "Built around your lifestyle, preferences and health challenges" },
+  { icon: "heart", title: "Emotional Eating Support", body: "Understand what's driving the urge to eat when you're not physically hungry" },
+  { icon: "identity", title: "Behaviour and Identity Coaching", body: "Address the habits and beliefs that keep pulling you back to old versions of yourself" },
+  { icon: "training", title: "Training That Fits Real Life", body: "A plan designed around your schedule, not someone else's" },
+  { icon: "medical", title: "Support For PCOS, Thyroid and Insulin Resistance", body: "Strategies adapted to your body's unique needs" },
+  { icon: "mind", title: "Counsellor-Led Mindset Support", body: "Work through the thoughts and emotional patterns that traditional weight loss programmes ignore" },
+  { icon: "habit", title: "Progressive Habit Building", body: "Small changes that become permanent instead of overwhelming rules you can't sustain" },
+  { icon: "target", title: "Long-Term Transformation Focus", body: "Designed to help you keep the weight off, not just lose it" },
 ];
 
 // 5 "what you'll walk away with" points (numbered boxes).
@@ -182,11 +190,11 @@ export default function Page() {
                 {" "}And Love The Woman In The Mirror Again
               </h1>
 
-              {/* Mawra's picture (placeholder) */}
+              {/* Hero banner — tapping it jumps to the Then/Now comparison */}
               <div className="vsl-wrap hero-portrait-wrap">
-                <div className="vsl-box hero-portrait" id="vsl">
+                <a className="vsl-box hero-portrait" id="vsl" href="#story" aria-label="Read how Mawra changed her own life first">
                   <img src={IMG} className="vsl-image" alt="Coach Mawra — Transformation Coach" width={1672} height={941} fetchPriority="high" decoding="async" />
-                </div>
+                </a>
               </div>
 
               {/* Credentials — below the image */}
@@ -205,18 +213,19 @@ export default function Page() {
                   {CTA_LABEL}
                   <span className="arrow">→</span>
                 </a>
+                <UrgencyTimer />
               </div>
             </div>
           </div>
         </section>
 
         {/* ============ STORY ============ */}
-        <section className="sec-band-paper sec-dark" data-screen-label="02 Story">
+        <section className="sec-band-paper sec-dark" id="story" data-screen-label="02 Story">
           <div className="wrap">
             <div className="sec-head reveal">
               <span className="sec-label">Story Section</span>
               <h2 className="sec-h2">Before Mawra Helped <span className="accent">500+ Women</span><br />Change Their Lives,</h2>
-              <p className="sec-lede" style={{ fontFamily: "'Manrope', sans-serif", fontStyle: "italic" }}>She Had To Change Her Own.</p>
+              <p className="sec-lede" style={{ fontFamily: "'DM Sans', sans-serif", fontStyle: "italic" }}>She Had To Change Her Own.</p>
             </div>
 
             {/* Single 2-column section: before/after photo on the left,
@@ -226,7 +235,7 @@ export default function Page() {
                 <img src="/assets/story/helped.webp" width={1000} height={1000} alt="Coach Mawra before and after — 115 kg to 55 kg" />
               </div>
 
-              <div className="story-compare">
+              <div className="story-compare" id="then-now">
                 <span className="sec-label xform-label">Then and Now</span>
                 <div className="xform">
                   <div className="xform-head">
@@ -278,18 +287,22 @@ export default function Page() {
               <h2 className="sec-h2">Women Who Lost The Weight They Thought<br />They&apos;d Carry <span className="accent">Forever.</span></h2>
             </div>
 
+            {/* 1) Image testimonials (before / after) — two rows, opposite directions */}
+            <div className="reveal">
+              <MarqueeSlider items={RESULTS_ROW_A} cardClass="result-card" showName />
+              <MarqueeSlider items={RESULTS_ROW_B} cardClass="result-card" showName reverse />
+            </div>
+
+            {/* 2) Video testimonials */}
+            <div className="sec-head reveal" style={{ marginTop: 56 }}>
+              <h2 className="sec-h2" style={{ fontSize: "clamp(22px, 3vw, 30px)" }}>Real Words From <span className="accent">Real Women.</span></h2>
+              <p className="sec-lede">Tap any story to watch her transformation.</p>
+            </div>
             <div className="reveal">
               <TestiVideoSlider items={VIDEO_TESTIMONIALS} />
             </div>
 
-            <div className="sec-head reveal" style={{ marginTop: 56 }}>
-              <h2 className="sec-h2" style={{ fontSize: "clamp(22px, 3vw, 30px)" }}>Their <span className="accent">Transformations.</span></h2>
-              <p className="sec-lede">Real before-and-afters from women who kept it off.</p>
-            </div>
-            <div className="reveal">
-              <MarqueeSlider items={CLIENT_RESULTS} cardClass="result-card" showName />
-            </div>
-
+            {/* 3) Written / chat testimonials */}
             <div className="sec-head reveal" style={{ marginTop: 56 }}>
               <h2 className="sec-h2" style={{ fontSize: "clamp(22px, 3vw, 30px)" }}>Straight From Their <span className="accent">Chats.</span></h2>
               <p className="sec-lede">Unfiltered messages from women mid-transformation. Tap to read.</p>
@@ -300,6 +313,7 @@ export default function Page() {
 
             <div className="faq-closing reveal" style={{ marginTop: 48 }}>
               <a className="cta-big" href="#book" data-lead="1">{CTA_LABEL}<span className="arrow">→</span></a>
+              <UrgencyTimer />
             </div>
           </div>
         </section>
@@ -325,9 +339,10 @@ export default function Page() {
 
             <div className="faq-closing reveal">
               <div className="faq-closing-plaque">
-                <p className="faq-closing-lead">Then you&apos;re exactly the kind of woman Mawra works with.</p>
+                <p className="faq-closing-lead">Then you&apos;re exactly the kind of woman<br /> Mawra works with.</p>
               </div>
               <a className="cta-big" href="#book" data-lead="1">{CTA_LABEL}<span className="arrow">→</span></a>
+              <UrgencyTimer />
             </div>
           </div>
         </section>
@@ -359,8 +374,8 @@ export default function Page() {
           <div className="wrap narrow">
             <div className="sec-head reveal">
               <span className="sec-label">Details About The Call Section</span>
-              <h2 className="sec-h2">Book Your <span className="accent">Assessment Call.</span></h2>
-              <p className="sec-lede" style={{ fontFamily: "'Manrope', sans-serif", fontStyle: "italic" }}>Here&apos;s what you&apos;ll walk away with.</p>
+              <h2 className="sec-h2">Book Your FREE <span className="accent">Identity Transformation Call</span></h2>
+              <p className="sec-lede" style={{ fontFamily: "'DM Sans', sans-serif", fontStyle: "italic" }}>Here&apos;s what you&apos;ll walk away with.</p>
             </div>
 
             <div className="numbox-grid reveal">
@@ -385,6 +400,7 @@ export default function Page() {
 
             <div className="faq-closing reveal">
               <a className="cta-big" href="#book" data-lead="1">{CTA_LABEL}<span className="arrow">→</span></a>
+              <UrgencyTimer />
             </div>
           </div>
         </section>
@@ -403,14 +419,14 @@ export default function Page() {
 
         {/* ============ STICKY CTA ============ */}
         <a className="sticky-cta" id="stickyCta" href="#book" data-lead="1">
-          <span className="sticky-tag">Free this week</span>
-          <span className="sticky-label"><strong>{CTA_LABEL}</strong></span>
-          <span className="sticky-arrow">Book now <span className="ar">→</span></span>
+          {/* Desktop: timer left, CTA right. Mobile: CTA only. */}
+          <UrgencyTimer className="ut-sticky" />
+          <span className="sticky-arrow">{CTA_LABEL} <span className="ar">→</span></span>
         </a>
       </main>
 
       <LeadModal />
-      <Script src="/funnel.js?v=6" strategy="afterInteractive" />
+      <Script src="/funnel.js?v=7" strategy="afterInteractive" />
     </>
   );
 }

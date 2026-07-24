@@ -8,14 +8,14 @@ import {
   type Attribution,
 } from "../_lib/attribution";
 import { setMetaAdvancedMatching } from "../_lib/analytics";
-import { COUNTRIES } from "../_lib/country";
+import { COUNTRIES, flagEmoji } from "../_lib/country";
 import ThemedSelect, { type ThemedOption } from "./ThemedSelect";
 
-// Option lists for the themed dropdowns.
+// Option lists for the themed dropdowns (with flag icons).
 const COUNTRY_OPTIONS: ThemedOption[] = COUNTRIES.map((c) => ({
   value: c.iso,
-  label: `${c.name} · ${c.dial}`,
-  short: `${c.iso} ${c.dial}`,
+  label: `${flagEmoji(c.iso)}  ${c.name} · ${c.dial}`,
+  short: `${flagEmoji(c.iso)} ${c.dial}`,
 }));
 const WEIGHT_OPTIONS: ThemedOption[] = [
   { value: "Less than 10 kg", label: "Less than 10 kg" },
@@ -219,7 +219,7 @@ export default function LeadModal() {
             Free Assessment Call
           </span>
           <h2 className="lead-title">
-            Book Your <span className="gold">Free</span> Assessment Call
+            Book Your<br /><span className="gold">Free</span> Assessment Call
           </h2>
           <p className="lead-sub">
             Enter your details and pick your slot on the next screen. Takes 30 seconds.

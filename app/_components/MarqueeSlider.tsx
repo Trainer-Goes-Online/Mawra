@@ -19,14 +19,17 @@ export default function MarqueeSlider({
   items,
   cardClass = "",
   showName = false,
+  reverse = false,
 }: {
   items: MarqueeItem[];
   cardClass?: string;
   showName?: boolean;
+  reverse?: boolean;
 }) {
   const [zoom, setZoom] = useState<MarqueeItem | null>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
-  useMarquee(sliderRef);
+  // Negative speed scrolls the strip in the opposite direction.
+  useMarquee(sliderRef, { speed: reverse ? -0.6 : 0.6 });
 
   useEffect(() => {
     if (!zoom) return;
