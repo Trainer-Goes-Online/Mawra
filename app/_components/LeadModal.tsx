@@ -4,10 +4,11 @@ import { useState, useEffect, useRef, FormEvent } from "react";
 import {
   UTM_KEYS,
   ATTRIBUTION_STORAGE_KEY,
-  utmQueryString,
   type Attribution,
 } from "../_lib/attribution";
 import { setMetaAdvancedMatching } from "../_lib/analytics";
+import { trackGa4EventOnce, markOnce, unmarkOnce } from "../_lib/ga4";
+import { fireAddToCartOnce } from "../_lib/meta-client";
 import { COUNTRIES, flagEmoji } from "../_lib/country";
 import ThemedSelect, { type ThemedOption } from "./ThemedSelect";
 
@@ -114,6 +115,11 @@ export default function LeadModal() {
       const trigger = target?.closest?.("[data-lead]");
       if (trigger) {
         e.preventDefault();
+        // Any landing-page CTA counts as top-of-funnel intent. Fire GA4
+        // add_to_cart + Meta standard AddToCart (CAPI) — each once per browser,
+        // host-gated, non-blocking.
+        trackGa4EventOnce("add_to_cart");
+        fireAddToCartOnce();
         setOpen(true);
       }
     }
@@ -144,6 +150,10 @@ export default function LeadModal() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    // GA4 registration_complete = "clicked Continue to Booking" intent. Fires at
+    // the TOP of the handler, BEFORE validation, so a half-filled form that
+    // bounces off validation still counts. Once per browser.
+    trackGa4EventOnce("registration_complete");
     // Validate every field by type; block submit and surface inline errors.
     const errs = validateForm(form);
     if (Object.keys(errs).length > 0) {
@@ -160,7 +170,8 @@ export default function LeadModal() {
       const dial =
         COUNTRIES.find((c) => c.iso === form.country_iso)?.dial || "+91";
 
-      // Enrich the Meta pixel with hashed identity (advanced matching).
+      // Enrich the Meta pixel with hashed identity (advanced matching). This
+      // also writes the tgo_mam cookie the Schedule CAPI reads later.
       void setMetaAdvancedMatching({
         email: form.email,
         phone: `${dial}${form.phone}`,
@@ -169,26 +180,53 @@ export default function LeadModal() {
         country: form.country_iso,
       });
 
-      const res = await fetch("/api/lead", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          country_code: dial,
-          attribution,
-          eventSourceUrl:
-            typeof window !== "undefined" ? window.location.href : undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data?.error || "Something went wrong. Please try again.");
+      // Once per browser: the /api/lead call does BOTH the Pabbly row and the
+      // CompleteRegistration + registration_complete CAPI events. A second valid
+      // submit in the same browser skips it and just re-forwards to booking.
+      let leadId = "";
+      if (markOnce("tgo_reg_fired")) {
+        const res = await fetch("/api/lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...form,
+            country_code: dial,
+            attribution,
+            eventSourceUrl:
+              typeof window !== "undefined" ? window.location.href : undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          // Roll back the flag so the user can retry (and Pabbly/CAPI can fire).
+          unmarkOnce("tgo_reg_fired");
+          throw new Error(data?.error || "Something went wrong. Please try again.");
+        }
+        leadId = data.leadId || "";
+        try {
+          localStorage.setItem("tgo_lead_id", leadId);
+        } catch {
+          /* ignore */
+        }
+      } else {
+        try {
+          leadId = localStorage.getItem("tgo_lead_id") || "";
+        } catch {
+          leadId = "";
+        }
       }
 
-      const utmQs = utmQueryString(attribution);
-      window.location.href =
-        `/book-a-call?lead=${encodeURIComponent(data.leadId || "")}` +
-        (utmQs ? `&${utmQs}` : "");
+      // Forward ALL landing-page URL params (+ any stored UTMs) to the booking
+      // page so attribution rides through the whole funnel.
+      const forward = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.search : ""
+      );
+      for (const k of UTM_KEYS) {
+        const v = attribution[k];
+        if (v && !forward.get(k)) forward.set(k, v);
+      }
+      forward.set("lead", leadId);
+      window.location.href = `/book-a-call?${forward.toString()}`;
     } catch (err) {
       setSubmitting(false);
       setError(err instanceof Error ? err.message : "Something went wrong.");

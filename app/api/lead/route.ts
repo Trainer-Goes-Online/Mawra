@@ -130,8 +130,10 @@ export async function POST(req: NextRequest) {
     // Fire the free-registration Meta CAPI events (standard + custom).
     // Awaited (so it completes in serverless) but self-contained — it logs and
     // swallows its own errors, so a CAPI failure never fails the lead.
+    // event_id is stable per email (not the per-submit lead_id) so Meta's 48h
+    // dedup backs up the client's once-per-browser flag if the form re-submits.
     await sendMetaLeadCapi({
-      eventId: leadId,
+      eventId: `reg_${externalId}`,
       email,
       phone,
       firstName: body.first_name!,

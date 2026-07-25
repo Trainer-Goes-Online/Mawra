@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { trackGa4EventOnce } from "../_lib/ga4";
+import { fireScheduleOnce } from "../_lib/meta-client";
 
 export default function BookACallEmbed({ calendlyUrl }: { calendlyUrl: string }) {
   // Render only on client so the iframe doesn't ship with the SSR HTML
@@ -30,7 +32,12 @@ export default function BookACallEmbed({ calendlyUrl }: { calendlyUrl: string })
       if (!isCalendlyOrigin(e.origin)) return;
       const data = e.data as { event?: string } | null;
       if (data && typeof data === "object" && data.event === "calendly.event_scheduled") {
-        window.location.href = "/thank-you";
+        // Booking complete: GA4 call_booked + Meta Schedule/call_booked CAPI,
+        // each once per browser (host-gated, non-blocking). Then forward to
+        // /thank-you carrying the current query string (lead + all UTMs).
+        trackGa4EventOnce("call_booked");
+        fireScheduleOnce();
+        window.location.href = "/thank-you" + window.location.search;
       }
     }
     window.addEventListener("message", onMessage);
