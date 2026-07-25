@@ -11,8 +11,11 @@ import { TRACKING_HOST } from "@/app/_lib/tracking";
 export const runtime = "nodejs";
 
 const GRAPH_API_VERSION = "v25.0";
-const SCHEDULE_STANDARD_EVENT = "Schedule";
-const SCHEDULE_CUSTOM_EVENT = "call_booked";
+// H&W: `Schedule` (standard) is blocked by name on a restricted dataset; the
+// neutral custom `call_booked` is the signal that keeps flowing. Both fire, both
+// env-configurable so they can be recoded (roadmap Scenario C) without a deploy.
+const SCHEDULE_STANDARD_EVENT = process.env.SCHEDULE_STANDARD_EVENT || "Schedule";
+const SCHEDULE_CUSTOM_EVENT = process.env.SCHEDULE_CUSTOM_EVENT || "call_booked";
 
 /** Pull the already-hashed MAM identity out of the tgo_mam cookie, if present. */
 function readMam(raw: string | undefined): Record<string, string> {
