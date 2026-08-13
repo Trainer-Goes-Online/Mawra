@@ -15,8 +15,11 @@ type Body = {
   email?: string;
   phone?: string;
   country_code?: string;
+  profile?: string;
   weight_to_lose?: string;
-  biggest_challenge?: string;
+  annual_income?: string;
+  investment_level?: string;
+  disqualified?: boolean;
   attribution?: Attribution;
   eventSourceUrl?: string;
 };
@@ -106,8 +109,12 @@ export async function POST(req: NextRequest) {
       phone,
       city: "",
       country_code: countryIso,
+      profile: body.profile || "",
       weight_to_lose: body.weight_to_lose || "",
-      biggest_challenge: body.biggest_challenge || "",
+      annual_income: body.annual_income || "",
+      investment_level: body.investment_level || "",
+      disqualified: body.disqualified ? "true" : "false",
+      qualified: body.disqualified ? "false" : "true",
       fbc,
       fbp,
       client_ip_address: clientIp,

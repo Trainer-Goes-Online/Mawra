@@ -64,7 +64,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <link rel="preload" as="image" href="/assets/mawra_hero_2.webp" fetchPriority="high" />
-        <link rel="stylesheet" href="/funnel.css?v=54" />
+        <link rel="stylesheet" href="/funnel.css?v=60" />
       </head>
       <body>
         {/* Google Analytics (gtag.js) — only if NEXT_PUBLIC_GA_ID is set */}
