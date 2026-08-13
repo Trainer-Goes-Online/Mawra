@@ -5514,3 +5514,454 @@ a.vsl-box.hero-portrait { cursor: pointer; display: block; text-decoration: none
 
 /* Two stacked transformation marquee rows — tighten the gap */
 .mslider + .mslider { padding-top: 4px; }
+
+/* ============================================================
+   STEPWISE LEAD WIZARD (7-step popup form)
+   ============================================================ */
+.lead-wizard {
+  max-width: 528px;
+  padding: 34px 34px 26px;
+  overflow-x: hidden; /* kill any horizontal scrollbar (esp. mobile) */
+}
+
+/* Progress track + fill — right gutter keeps it clear of the × close button */
+.wiz-progress {
+  height: 5px;
+  border-radius: 999px;
+  background: #F1E4E4;
+  overflow: hidden;
+  margin: 4px 46px 16px 0;
+}
+.wiz-progress-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #B91C1C, #DC2626, #EF4444);
+  transition: width .35s cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Meta row: "Question X of 7" + free badge */
+.wiz-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.wiz-count {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.wiz-count strong { color: var(--brand); font-weight: 700; }
+.wiz-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--success);
+  font-weight: 600;
+}
+.wiz-badge svg { width: 15px; height: 15px; }
+
+/* Step body — tall enough that an open dropdown (up to ~240px) sits fully
+   inside the card without clipping or forcing the user to scroll. */
+.wiz-form { min-height: 360px; display: flex; flex-direction: column; }
+.wiz-step { animation: wizFade .28s ease; }
+@keyframes wizFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.wiz-q {
+  margin: 0 0 18px;
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  font-size: clamp(20px, 4.4vw, 26px);
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.wiz-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.wiz-step .lead-field label {
+  font-size: 9px;
+  margin-bottom: 1px;
+}
+
+/* Single-select radio cards (income + investment steps) */
+.wiz-radios { display: flex; flex-direction: column; gap: 10px; }
+.wiz-radio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 15px 16px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-strong);
+  background: #fff;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  font-size: 15.5px;
+  color: var(--ink);
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease, transform .12s ease;
+}
+.wiz-radio:hover { border-color: var(--brand-bright); background: var(--bg-alt); }
+.wiz-radio-dot {
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  border-radius: 999px;
+  border: 2px solid var(--border-strong);
+  position: relative;
+  transition: border-color .18s ease;
+}
+.wiz-radio-dot::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 999px;
+  background: var(--brand);
+  transform: scale(0);
+  transition: transform .18s cubic-bezier(.2, .8, .2, 1);
+}
+.wiz-radio.selected {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: 0 0 0 3px var(--brand-ring);
+}
+.wiz-radio.selected .wiz-radio-dot { border-color: var(--brand); }
+.wiz-radio.selected .wiz-radio-dot::after { transform: scale(1); }
+.wiz-radio-label { line-height: 1.35; }
+/* The "not ready to invest" opt-out reads a little softer */
+.wiz-radio-soft .wiz-radio-label { color: var(--ink-soft); font-size: 14.5px; }
+
+.wiz-error { margin-top: 16px; }
+
+/* Nav row: Back (left) + Continue/Submit (right) */
+.wiz-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 22px;
+}
+.wiz-next { margin-top: 0 !important; }
+.wiz-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--muted);
+  transition: color .18s ease;
+}
+.wiz-back:hover:not(:disabled) { color: var(--brand); }
+.wiz-back:disabled { opacity: .5; cursor: not-allowed; }
+.wiz-back .ar { font-size: 16px; }
+.wiz-back-spacer { display: inline-block; }
+.wiz-fine {
+  margin-top: 16px;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+  font-family: "DM Sans", sans-serif !important;
+  font-size: 11.5px !important;
+  line-height: 1.5 !important;
+  color: var(--muted) !important;
+  text-align: left !important;
+}
+
+@media (max-width: 480px) {
+  .lead-modal { padding: 14px; }
+  .lead-wizard { padding: 30px 18px 20px; max-width: 100%; }
+  .wiz-progress { margin-right: 44px; }
+  .wiz-grid-2 { grid-template-columns: 1fr; gap: 12px; }
+  .wiz-form { min-height: 330px; }
+  .wiz-radio { padding: 14px 14px; font-size: 15px; }
+  .wiz-q { font-size: 20px; }
+  /* Phone step: keep the row from forcing the card wider than the screen */
+  .lead-phone-group { grid-template-columns: 104px 1fr; gap: 8px; }
+  .lead-phone-group .tsel-list {
+    min-width: 216px;
+    max-width: calc(100vw - 80px);
+    left: 0;
+    right: auto;
+  }
+}
+
+/* Instagram icon inside the disqualified-page CTA */
+.cta-big .ig-ico { display: inline-flex; align-items: center; }
+.cta-big .ig-ico svg { display: block; }
+
+/* ============================================================
+   DISQUALIFIED PAGE
+   ============================================================ */
+/* Top ticker ribbon */
+.disq-ribbon {
+  background: linear-gradient(90deg, #B91C1C, #DC2626, #B91C1C);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.disq-ribbon-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 34px;
+  padding: 10px 0;
+  animation: disqTicker 26s linear infinite;
+}
+.disq-ribbon-track span {
+  display: inline-flex;
+  align-items: center;
+  gap: 34px;
+  color: #fff;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.disq-ribbon-track span::after { content: "✦"; opacity: .6; }
+@keyframes disqTicker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Round icon badge (hero + closing) */
+.disq-icon {
+  width: 54px; height: 54px;
+  margin: 0 auto 20px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-ring);
+  color: var(--brand);
+}
+.disq-icon svg { width: 24px; height: 24px; }
+
+/* Instagram section: two columns */
+.disq-ig-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+  margin-top: 40px;
+}
+.disq-follow-h {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; margin: 0 0 16px;
+}
+.disq-follow-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.disq-follow-list li {
+  display: flex; gap: 12px; align-items: flex-start;
+  font-family: "DM Sans", sans-serif; font-size: 15.5px; line-height: 1.5; color: var(--ink-soft);
+}
+.disq-follow-list .tick {
+  flex-shrink: 0; width: 22px; height: 22px; margin-top: 1px;
+  display: grid; place-items: center; border-radius: 999px;
+  background: var(--brand-soft); color: var(--brand);
+}
+.disq-follow-list .tick svg { width: 13px; height: 13px; }
+.disq-follow-list strong { color: var(--ink); font-weight: 600; }
+.disq-note {
+  margin-top: 20px; padding: 14px 16px;
+  border-left: 3px solid var(--brand);
+  background: var(--bg-alt); border-radius: 0 10px 10px 0;
+  font-family: "DM Sans", sans-serif; font-size: 14px; line-height: 1.5; color: var(--ink-soft);
+}
+.disq-note strong { color: var(--ink); }
+
+/* Instagram card + CTA share one column so their widths line up exactly */
+.disq-ig-col { max-width: 360px; width: 100%; margin: 0 auto; }
+
+/* Instagram profile card mockup */
+.disq-ig-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-hover);
+  overflow: hidden;
+  width: 100%;
+}
+.disq-ig-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.disq-ig-handle {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: "DM Sans", sans-serif; font-weight: 700; font-size: 14px; color: var(--ink);
+}
+.disq-ig-verified { display: inline-flex; color: #3897F0; }
+.disq-ig-verified svg { width: 15px; height: 15px; display: block; }
+.disq-ig-top .ig-glyph { color: var(--brand); }
+.disq-ig-top .ig-glyph svg { width: 20px; height: 20px; display: block; }
+.disq-ig-body { padding: 18px 16px 16px; }
+.disq-ig-id { display: flex; align-items: center; gap: 16px; }
+.disq-ig-avatar {
+  width: 66px; height: 66px; flex-shrink: 0; border-radius: 999px; object-fit: cover;
+  border: 2px solid var(--brand); padding: 2px; background: #fff;
+}
+.disq-ig-stats { display: flex; gap: 14px; flex: 1; justify-content: space-around; }
+.disq-ig-stat { text-align: center; }
+.disq-ig-stat b { display: block; font-family: "Poppins", sans-serif; font-weight: 700; font-size: 15px; color: var(--ink); }
+.disq-ig-stat span { font-family: "DM Sans", sans-serif; font-size: 11.5px; color: var(--muted); }
+.disq-ig-name { margin: 14px 0 1px; font-family: "DM Sans", sans-serif; font-weight: 700; font-size: 14px; color: var(--ink); }
+.disq-ig-cat { margin: 0 0 6px; font-family: "DM Sans", sans-serif; font-size: 12.5px; color: var(--muted); }
+.disq-ig-bio { margin: 0; font-family: "DM Sans", sans-serif; font-size: 13px; line-height: 1.55; color: var(--ink-soft); }
+.disq-ig-bio .ig-link { color: #385898; font-weight: 600; }
+.disq-ig-btns { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 16px; }
+.disq-ig-follow {
+  display: block; padding: 9px 12px; border-radius: 9px; border: none;
+  background: var(--brand); color: #fff; text-decoration: none;
+  font-family: "DM Sans", sans-serif; font-weight: 600; font-size: 13.5px; text-align: center;
+  transition: background .18s ease, transform .12s ease, box-shadow .18s ease;
+}
+.disq-ig-follow:hover {
+  background: var(--brand-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -8px rgba(220, 38, 38, .6);
+}
+.disq-ig-follow:active { transform: translateY(0); }
+.disq-ig-msg {
+  padding: 9px 16px; border-radius: 9px; border: 1px solid var(--border-strong);
+  background: #fff; color: var(--ink);
+  font-family: "DM Sans", sans-serif; font-weight: 600; font-size: 13.5px;
+}
+.disq-ig-cta {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; margin: 12px 0 0;
+  padding: 13px 18px; border-radius: 12px;
+  background: linear-gradient(180deg, #EF4444, #B91C1C);
+  color: #fff; text-decoration: none;
+  font-family: "Poppins", sans-serif; font-weight: 600; font-size: 15px;
+  box-shadow: 0 10px 26px -10px rgba(220, 38, 38, .55);
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.disq-ig-cta:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -10px rgba(220, 38, 38, .7); }
+.disq-ig-cta svg { width: 19px; height: 19px; }
+
+/* Re-apply card */
+.disq-reapply {
+  max-width: 620px; margin: 0 auto; text-align: center;
+  padding: 40px 34px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+.disq-reapply .reapply-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 16px; border-radius: 999px;
+  background: #fff; border: 1px solid var(--border-strong);
+  font-family: "JetBrains Mono", monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 16px;
+}
+.disq-reapply h2 { margin: 0 0 22px; }
+.disq-reapply .disq-fine {
+  margin: 18px auto 0; max-width: 460px;
+  font-family: "DM Sans", sans-serif; font-size: 13px; line-height: 1.6; color: var(--muted);
+}
+
+/* Dark transparency band */
+.disq-dark {
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(220, 38, 38, 0.16), transparent 60%),
+    var(--bg-dark);
+  color: #fff;
+  padding: 72px 0 76px;
+}
+.disq-dark .sec-label { color: var(--brand-bright) !important; }
+.disq-dark .sec-h2 { color: #fff !important; }
+.disq-dark .sec-h2 .accent { color: var(--brand-bright) !important; }
+.disq-dark .disq-dark-lede {
+  max-width: 560px; margin: 14px auto 0; text-align: center;
+  font-family: "DM Sans", sans-serif; font-size: 15px; line-height: 1.7; color: rgba(248, 250, 252, .72);
+}
+.disq-crit-grid { display: flex; flex-direction: column; gap: 16px; max-width: 720px; margin: 40px auto 0; }
+.disq-crit {
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 20px 22px;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 16px;
+}
+.disq-crit.is-culprit {
+  background: rgba(220, 38, 38, .1);
+  border-color: rgba(220, 38, 38, .5);
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, .2);
+}
+.disq-crit-head { display: flex; gap: 14px; align-items: flex-start; }
+.disq-crit-num {
+  flex-shrink: 0; width: 30px; height: 30px; margin-top: 1px;
+  display: grid; place-items: center; border-radius: 999px;
+  background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .2);
+  font-family: "Poppins", sans-serif; font-weight: 700; font-size: 14px; color: #fff;
+}
+.disq-crit.is-culprit .disq-crit-num {
+  background: var(--brand); border-color: var(--brand); color: #fff;
+}
+.disq-crit-q { margin: 3px 0 0; font-family: "DM Sans", sans-serif; font-weight: 600; font-size: 15.5px; line-height: 1.45; color: #fff; }
+
+/* Boxed "Your Response" area under each question */
+.disq-crit-resp-box {
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, .28);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 11px;
+}
+.disq-crit.is-culprit .disq-crit-resp-box {
+  background: rgba(220, 38, 38, .12);
+  border-color: rgba(220, 38, 38, .45);
+}
+.disq-resp-label {
+  font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: .16em;
+  text-transform: uppercase; color: rgba(248, 250, 252, .5);
+}
+.disq-crit.is-culprit .disq-resp-label { color: #FCA5A5; }
+.disq-resp-val {
+  margin: 0; font-family: "DM Sans", sans-serif; font-weight: 600; font-size: 15px; line-height: 1.45; color: #fff;
+}
+.disq-crit.is-culprit .disq-resp-val { color: #FCA5A5; }
+.disq-resp-empty {
+  margin: 0; font-family: "DM Sans", sans-serif; font-style: italic; font-size: 14.5px; color: rgba(248, 250, 252, .4);
+}
+.disq-crit.is-culprit .disq-resp-empty { color: rgba(252, 165, 165, .8); }
+.disq-resp-tag {
+  align-self: flex-start; margin-top: 3px;
+  display: inline-flex; align-items: center;
+  padding: 5px 11px; border-radius: 999px;
+  background: var(--brand); color: #fff;
+  font-family: "JetBrains Mono", monospace; font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+}
+.disq-crit-note {
+  max-width: 560px; margin: 30px auto 0; text-align: center;
+  font-family: "DM Sans", sans-serif; font-size: 14px; line-height: 1.7; color: rgba(248, 250, 252, .6);
+}
+.disq-crit-note strong { color: #fff; }
+
+/* Closing */
+.disq-close-links {
+  margin-top: 18px; text-align: center;
+  font-family: "DM Sans", sans-serif; font-size: 14px; color: var(--muted);
+}
+.disq-close-links a { color: var(--brand); font-weight: 600; }
+
+@media (max-width: 720px) {
+  /* Restore a side gutter on mobile — the section/.wrap padding is zeroed
+     globally, so the disqualified page's content would otherwise touch edges. */
+  .disq-main section { padding-left: 18px !important; padding-right: 18px !important; }
+  .disq-ig-grid { grid-template-columns: 1fr; gap: 28px; }
+  .disq-reapply { padding: 32px 20px; }
+  .disq-crit { padding: 16px 16px; }
+}
+@media (max-width: 400px) {
+  .disq-main section { padding-left: 14px !important; padding-right: 14px !important; }
+}
