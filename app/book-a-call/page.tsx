@@ -109,7 +109,7 @@ export default async function BookACallPage({
               </p>
             </div>
 
-            <div className="hero-cred-pills reveal" style={{ justifyContent: "center", marginTop: 76 }}>
+            <div className="hero-cred-pills reveal" style={{ justifyContent: "center", marginTop: "1rem !important" }}>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>TEDx Speaker</span>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>500+ Transformations</span>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>60+ Kilos Lost and Maintained</span>
