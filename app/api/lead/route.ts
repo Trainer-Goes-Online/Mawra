@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UTM_KEYS, type Attribution } from "@/app/_lib/attribution";
-import { sha256, toOrigin, sendMetaLeadCapi } from "@/app/_lib/meta-capi";
+import { sha256, toOrigin, sendMetaLeadCapi, sendMetaQualifiedLeadCapi } from "@/app/_lib/meta-capi";
 import { dialCodeToCountryIso } from "@/app/_lib/country";
 
 // Node runtime (uses node:crypto via sha256). Free funnel: this endpoint takes
@@ -153,6 +153,26 @@ export async function POST(req: NextRequest) {
       clientIp,
       clientUserAgent,
     });
+
+    // QualifiedLead custom event — ONLY when the visitor qualifies (picked one
+    // of the priced investment tiers, not the decline option). Same full hashed
+    // identity → highest EMQ. event_id stable per email for Meta 48h dedup.
+    if (!body.disqualified) {
+      await sendMetaQualifiedLeadCapi({
+        eventId: `qual_${externalId}`,
+        email,
+        phone,
+        firstName: body.first_name!,
+        lastName: body.last_name!,
+        city: "",
+        countryCode: countryIso,
+        eventSourceUrl: originUrl,
+        fbc,
+        fbp,
+        clientIp,
+        clientUserAgent,
+      });
+    }
 
     return NextResponse.json({ ok: true, leadId });
   } catch (err: unknown) {

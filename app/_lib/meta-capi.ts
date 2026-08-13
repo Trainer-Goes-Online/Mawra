@@ -228,3 +228,76 @@ export async function sendMetaLeadCapi(params: MetaLeadParams): Promise<void> {
     console.error("Meta CAPI (free registration) error:", err);
   }
 }
+
+// ============================================================================
+// QUALIFIED-LEAD CAPI — fired ONLY when the visitor qualifies (picked one of the
+// priced investment tiers on the final wizard step, NOT the "not ready to
+// invest" decline). Single neutral custom event (QUALIFIED_EVENT, default
+// "QualifiedLead"), env-configurable so it can be recoded without a deploy
+// (roadmap Scenario C). Same full hashed user_data as the registration events —
+// em/ph/fn/ln/country/external_id + fbc/fbp/IP/UA — so EMQ is the highest the
+// collected fields allow (~8-9). No custom_data, origin-only URL: nothing
+// health-y or descriptive reaches Meta. Best-effort: logs + swallows errors.
+// ============================================================================
+
+export async function sendMetaQualifiedLeadCapi(params: MetaLeadParams): Promise<void> {
+  const pixelId = process.env.META_PIXEL_ID;
+  const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
+  if (!pixelId || !accessToken) {
+    console.warn("META_PIXEL_ID / META_CAPI_ACCESS_TOKEN not set — skipping QualifiedLead CAPI.");
+    return;
+  }
+
+  const eventName = process.env.QUALIFIED_EVENT || "QualifiedLead";
+
+  const normalisedEmail = params.email.trim().toLowerCase();
+  const rawPhone = params.phone.replace(/\D/g, "");
+  const fn = params.firstName.trim().toLowerCase();
+  const ln = params.lastName.trim().toLowerCase();
+  const ct = params.city.trim().toLowerCase().replace(/[^a-z]/g, "");
+  const country = params.countryCode.trim().toLowerCase();
+
+  const userData = {
+    em: [sha256(normalisedEmail)],
+    ...(rawPhone && { ph: [sha256(rawPhone)] }),
+    ...(fn && { fn: [sha256(fn)] }),
+    ...(ln && { ln: [sha256(ln)] }),
+    ...(ct && { ct: [sha256(ct)] }),
+    ...(country && { country: [sha256(country)] }),
+    external_id: [sha256(normalisedEmail)],
+    ...(params.fbc && { fbc: params.fbc }),
+    ...(params.fbp && { fbp: params.fbp }),
+    ...(params.clientUserAgent && { client_user_agent: params.clientUserAgent }),
+    ...(params.clientIp && { client_ip_address: params.clientIp }),
+  };
+
+  const event = {
+    event_name: eventName,
+    event_time: Math.floor(Date.now() / 1000),
+    event_id: params.eventId,
+    action_source: "website" as const,
+    event_source_url: toOrigin(params.eventSourceUrl),
+    user_data: userData,
+  };
+
+  const payload: Record<string, unknown> = { data: [event] };
+  if (process.env.META_TEST_EVENT_CODE) {
+    payload.test_event_code = process.env.META_TEST_EVENT_CODE;
+  }
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${pixelId}/events?access_token=${accessToken}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+    if (!res.ok) {
+      console.error("Meta CAPI (QualifiedLead)", res.status, await res.text());
+    }
+  } catch (err) {
+    console.error("Meta CAPI (QualifiedLead) error:", err);
+  }
+}
