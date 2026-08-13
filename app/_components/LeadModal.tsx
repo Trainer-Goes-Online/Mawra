@@ -50,9 +50,9 @@ const INCOME_OPTIONS = [
 const INVEST_DECLINE =
   "Really interested, but not ready to invest in my health & fitness";
 const INVESTMENT_OPTIONS = [
-  "₹5,000–₹7,000 per month",
-  "₹7,000–₹9,000 per month",
-  "₹9,000+ per month",
+  "₹7,000–₹10,000 per month",
+  "₹10,000–₹15,000 per month",
+  "₹15,000+ per month",
   INVEST_DECLINE,
 ];
 
