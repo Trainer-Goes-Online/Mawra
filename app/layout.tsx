@@ -63,8 +63,13 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
-        <link rel="preload" as="image" href="/assets/mawra_hero_2.webp" fetchPriority="high" />
-        <link rel="stylesheet" href="/funnel.css?v=60" />
+        <link rel="preload" as="image" href="/assets/mawra_vsl_poster.webp" fetchPriority="high" />
+        {/* Vimeo hero VSL — warm the player + CDN so the first click has less to do */}
+        <link rel="preconnect" href="https://player.vimeo.com" />
+        <link rel="preconnect" href="https://f.vimeocdn.com" crossOrigin="" />
+        <link rel="preconnect" href="https://i.vimeocdn.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://vod-adaptive-ak.vimeocdn.com" />
+        <link rel="stylesheet" href="/funnel.css?v=61" />
       </head>
       <body>
         {/* Google Analytics (gtag.js) — only if NEXT_PUBLIC_GA_ID is set */}

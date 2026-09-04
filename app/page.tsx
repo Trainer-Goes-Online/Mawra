@@ -5,9 +5,9 @@ import { type SlideItem } from "./_components/TestiSlider";
 import TestiVideoSlider, { type VideoItem } from "./_components/TestiVideoSlider";
 import MarqueeSlider from "./_components/MarqueeSlider";
 import StoryVideos, { type StoryVideo } from "./_components/StoryVideos";
+import HeroVsl from "./_components/HeroVsl";
 import UrgencyTimer from "./_components/UrgencyTimer";
 
-const IMG = "/assets/mawra_hero_2.webp"; // hero banner of Coach Mawra (16:9)
 const CTA_LABEL = "Book Your FREE Identity Transformation Call";
 
 // Before/after client results — Mandawi, Sahana, Leonna (with captions) first,
@@ -190,12 +190,8 @@ export default function Page() {
                 {" "}And Love The Woman In The Mirror Again
               </h1>
 
-              {/* Hero banner — tapping it jumps to the Then/Now comparison */}
-              <div className="vsl-wrap hero-portrait-wrap">
-                <a className="vsl-box hero-portrait" id="vsl" href="#story" aria-label="Read how Mawra changed her own life first">
-                  <img src={IMG} className="vsl-image" alt="Coach Mawra — Transformation Coach" width={1672} height={941} fetchPriority="high" decoding="async" />
-                </a>
-              </div>
+              {/* Hero VSL — click anywhere on the card to play with sound */}
+              <HeroVsl />
 
               {/* Credentials — below the image */}
               <div className="hero-creds">
