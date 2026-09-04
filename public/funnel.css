@@ -5965,3 +5965,228 @@ a.vsl-box.hero-portrait { cursor: pointer; display: block; text-decoration: none
 @media (max-width: 400px) {
   .disq-main section { padding-left: 14px !important; padding-right: 14px !important; }
 }
+
+/* ============================================================
+   HERO VSL — Vimeo player with click-to-play facade
+   Replaces the static hero banner. Poster is a still lifted out
+   of the VSL itself; the whole card is one big play target.
+   Component: app/_components/HeroVsl.tsx
+   ============================================================ */
+.vsl-box.hero-portrait.hero-vsl {
+  aspect-ratio: 16 / 9 !important;
+  background: #120a14 !important;          /* matches the frame's dark plum */
+  cursor: pointer;
+  padding: 0;
+}
+/* The card lifts on hover only while it's still a poster — once the video is
+   running a moving card would fight the player controls. */
+.vsl-box.hero-portrait.hero-vsl.is-playing { cursor: default; }
+.vsl-box.hero-portrait.hero-vsl.is-playing:hover { transform: none !important; }
+
+/* --- the clickable poster layer ------------------------------------------ */
+.hero-vsl-trigger {
+  position: absolute; inset: 0;
+  z-index: 3;
+  display: block;
+  width: 100%; height: 100%;
+  margin: 0; padding: 0;
+  border: 0; border-radius: inherit;
+  background: transparent;
+  font: inherit; color: inherit;
+  -webkit-appearance: none; appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  overflow: hidden;
+}
+.hero-vsl-trigger:focus-visible {
+  outline: 3px solid #EF4444;
+  outline-offset: 3px;
+}
+/* Scrim: darkens top and bottom so the play button and the runtime pill keep
+   contrast against whatever frame the poster happens to be. */
+.hero-vsl-scrim {
+  position: absolute; inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(10, 4, 14, .30) 0%, rgba(10, 4, 14, .04) 34%,
+                            rgba(10, 4, 14, .10) 62%, rgba(10, 4, 14, .48) 100%);
+  transition: opacity .4s ease;
+}
+.hero-vsl-trigger:hover .hero-vsl-scrim { opacity: .82; }
+
+/* --- 3D play button ------------------------------------------------------ */
+.hero-vsl-play {
+  --hvp-size: clamp(62px, 8.4vw, 96px);
+  position: absolute; inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.hero-vsl-play > * { grid-area: 1 / 1; }
+
+/* soft breathing halo behind everything */
+.hero-vsl-play::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: calc(var(--hvp-size) * 2.3);
+  height: calc(var(--hvp-size) * 2.3);
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(220, 38, 38, .45) 0%, rgba(220, 38, 38, .16) 46%, rgba(220, 38, 38, 0) 70%);
+  animation: hvpHalo 3.2s ease-in-out infinite;
+}
+
+/* two staggered pulse rings */
+.hvp-ring {
+  width: var(--hvp-size);
+  height: var(--hvp-size);
+  border-radius: 50%;
+  border: 2px solid rgba(239, 68, 68, .6);
+  box-shadow: 0 0 18px -2px rgba(220, 38, 38, .5);
+  animation: hvpRipple 2.6s cubic-bezier(.2, .7, .2, 1) infinite;
+}
+.hvp-ring:nth-of-type(2) { animation-delay: 1.3s; }
+
+/* the raised body of the button */
+.hvp-core {
+  position: relative;
+  width: var(--hvp-size);
+  height: var(--hvp-size);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 34% 26%,
+      #ff8b7d 0%, #f4544d 26%, #ef4444 46%, #dc2626 68%, #991b1b 100%);
+  box-shadow:
+    0 22px 40px -14px rgba(120, 12, 12, .85),
+    0 8px 16px -8px rgba(0, 0, 0, .55),
+    0 0 70px -12px rgba(220, 38, 38, .7),
+    0 0 0 1px rgba(255, 255, 255, .26),
+    inset 0 2px 3px rgba(255, 255, 255, .6),
+    inset 0 -12px 22px -10px rgba(74, 6, 6, .9);
+  animation: hvpBreath 3.2s ease-in-out infinite;
+  transition: transform .28s cubic-bezier(.2, .8, .2, 1), box-shadow .28s ease;
+  will-change: transform;
+}
+/* specular sheen across the top third — what sells the sphere */
+.hvp-gloss {
+  position: absolute;
+  left: 13%; right: 13%; top: 5%;
+  height: 40%;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(255, 255, 255, 0));
+  filter: blur(.5px);
+  pointer-events: none;
+}
+.hvp-tri {
+  width: 32%; height: 36%;
+  margin-left: 9%;
+  background: #fff;
+  clip-path: polygon(4% 0%, 100% 50%, 4% 100%);
+  filter: drop-shadow(0 3px 5px rgba(88, 8, 8, .5));
+}
+
+/* hover / press: pause the breath so the two transforms don't fight */
+.hero-vsl-trigger:hover .hvp-core {
+  animation: none;
+  transform: scale(1.09);
+  box-shadow:
+    0 28px 50px -14px rgba(120, 12, 12, .9),
+    0 10px 20px -8px rgba(0, 0, 0, .6),
+    0 0 96px -10px rgba(220, 38, 38, .85),
+    0 0 0 1px rgba(255, 255, 255, .34),
+    inset 0 2px 4px rgba(255, 255, 255, .7),
+    inset 0 -12px 22px -10px rgba(74, 6, 6, .9);
+}
+.hero-vsl-trigger:active .hvp-core { animation: none; transform: scale(.96); }
+
+@keyframes hvpRipple {
+  0%   { transform: scale(.9);  opacity: 0; }
+  14%  { opacity: .8; }
+  100% { transform: scale(1.95); opacity: 0; }
+}
+@keyframes hvpBreath {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+@keyframes hvpHalo {
+  0%, 100% { transform: scale(.9);  opacity: .55; }
+  50%      { transform: scale(1.06); opacity: .95; }
+}
+
+/* --- runtime pill -------------------------------------------------------- */
+.hero-vsl-dur {
+  position: absolute;
+  right: clamp(10px, 1.6vw, 16px);
+  bottom: clamp(10px, 1.6vw, 16px);
+  z-index: 4;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(10, 4, 14, .62);
+  border: 1px solid rgba(255, 255, 255, .22);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff;
+  font-family: "DM Sans", sans-serif;
+  font-size: clamp(10.5px, 1.1vw, 12.5px);
+  font-weight: 600;
+  letter-spacing: .04em;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+/* --- the live iframe ----------------------------------------------------- */
+.hero-vsl-frame {
+  position: absolute; inset: 0;
+  z-index: 3;
+  width: 100%; height: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: #000;
+  display: block;
+}
+
+/* --- last-resort unmute chip -------------------------------------------- */
+/* Only rendered when the player reports itself muted after we asked for sound
+   (see HeroVsl.tsx). Normally nobody ever sees this. */
+.hero-vsl-unmute {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 16px 9px 13px;
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ef4444, #dc2626);
+  box-shadow: 0 10px 26px -8px rgba(220, 38, 38, .8), 0 0 0 1px rgba(255,255,255,.14) inset;
+  color: #fff;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: hvpBreath 2s ease-in-out infinite;
+}
+.hvu-icon {
+  width: 14px; height: 14px;
+  background: #fff;
+  clip-path: polygon(0% 32%, 26% 32%, 52% 6%, 52% 94%, 26% 68%, 0% 68%);
+}
+
+@media (max-width: 720px) {
+  .hero-vsl-play { --hvp-size: clamp(58px, 17vw, 82px); }
+  .hvp-ring { border-width: 1.5px; }
+  .hero-vsl-unmute { font-size: 12.5px; padding: 8px 14px 8px 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-vsl-play::before,
+  .hvp-ring,
+  .hvp-core,
+  .hero-vsl-unmute { animation: none !important; }
+  .hvp-ring { opacity: .45; }
+}
