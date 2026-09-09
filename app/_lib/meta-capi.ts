@@ -222,10 +222,14 @@ export async function sendMetaLeadCapi(params: MetaLeadParams): Promise<void> {
       }
     );
     if (!res.ok) {
-      console.error("Meta CAPI (free registration)", res.status, await res.text());
+      console.error("[capi] registration FAILED", res.status, await res.text());
+    } else {
+      console.log(
+        `[capi] registration sent → ${standardEvent} + ${customEvent} (event_id=${params.eventId})`
+      );
     }
   } catch (err) {
-    console.error("Meta CAPI (free registration) error:", err);
+    console.error("[capi] registration error:", err);
   }
 }
 
@@ -295,9 +299,13 @@ export async function sendMetaQualifiedLeadCapi(params: MetaLeadParams): Promise
       }
     );
     if (!res.ok) {
-      console.error("Meta CAPI (QualifiedLead)", res.status, await res.text());
+      console.error("[capi] QualifiedLead FAILED", res.status, await res.text());
+    } else {
+      console.log(
+        `[capi] QualifiedLead sent → ${eventName} (event_id=${params.eventId})`
+      );
     }
   } catch (err) {
-    console.error("Meta CAPI (QualifiedLead) error:", err);
+    console.error("[capi] QualifiedLead error:", err);
   }
 }

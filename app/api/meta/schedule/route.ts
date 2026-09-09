@@ -107,9 +107,12 @@ export async function POST(req: NextRequest) {
       }
     );
     if (!res.ok) {
-      console.error("[sched] Meta CAPI", res.status, await res.text());
+      console.error("[sched] Meta CAPI FAILED", res.status, await res.text());
       return NextResponse.json({ ok: true, capi: "error" });
     }
+    console.log(
+      `[sched] CAPI sent → ${SCHEDULE_STANDARD_EVENT} + ${SCHEDULE_CUSTOM_EVENT} (event_id=${eventId})`
+    );
     return NextResponse.json({ ok: true, capi: "sent" });
   } catch (err) {
     console.error("[sched] error", err);

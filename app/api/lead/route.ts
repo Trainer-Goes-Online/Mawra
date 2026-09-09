@@ -42,10 +42,12 @@ async function sendToSheet(payload: Record<string, unknown>) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      console.error("Lead webhook responded", res.status, await res.text());
+      console.error("[lead] Pabbly webhook FAILED", res.status, await res.text());
+    } else {
+      console.log("[lead] Pabbly webhook accepted", res.status);
     }
   } catch (err) {
-    console.error("Lead webhook error:", err);
+    console.error("[lead] Pabbly webhook error:", err);
   }
 }
 
@@ -132,6 +134,10 @@ export async function POST(req: NextRequest) {
       payload[k] = attribution[k] || "";
     }
 
+    console.log(
+      `[lead] ${leadId} received — disqualified=${body.disqualified ? "true" : "false"}. Pabbly payload:`,
+      JSON.stringify(payload)
+    );
     await sendToSheet(payload);
 
     // Fire the free-registration Meta CAPI events (standard + custom).
@@ -158,6 +164,7 @@ export async function POST(req: NextRequest) {
     // of the priced investment tiers, not the decline option). Same full hashed
     // identity → highest EMQ. event_id stable per email for Meta 48h dedup.
     if (!body.disqualified) {
+      console.log(`[lead] ${leadId} qualified — firing QualifiedLead`);
       await sendMetaQualifiedLeadCapi({
         eventId: `qual_${externalId}`,
         email,
