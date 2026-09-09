@@ -7,7 +7,7 @@ import {
   type Attribution,
 } from "../_lib/attribution";
 import { setMetaAdvancedMatching } from "../_lib/analytics";
-import { trackGa4EventOnce, markOnce, unmarkOnce } from "../_lib/ga4";
+import { trackGa4EventOnce } from "../_lib/ga4";
 import { fireAddToCartOnce } from "../_lib/meta-client";
 import { COUNTRIES, flagEmoji } from "../_lib/country";
 import ThemedSelect, { type ThemedOption } from "./ThemedSelect";
@@ -252,41 +252,38 @@ export default function LeadModal() {
         country: finalForm.country_iso,
       });
 
-      // Once per browser: the /api/lead call does BOTH the webhook row and the
-      // CompleteRegistration CAPI events. A second submit in the same browser
-      // skips it and just re-forwards, reusing the stored lead id.
-      let leadId = "";
-      if (markOnce("tgo_reg_fired")) {
-        const res = await fetch("/api/lead", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...finalForm,
-            country_code: dial,
-            disqualified,
-            attribution,
-            eventSourceUrl:
-              typeof window !== "undefined" ? window.location.href : undefined,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
-          // Roll back the flag so the user can retry (and webhook/CAPI can fire).
-          unmarkOnce("tgo_reg_fired");
-          throw new Error(data?.error || "Something went wrong. Please try again.");
-        }
-        leadId = data.leadId || "";
-        try {
-          localStorage.setItem("tgo_lead_id", leadId);
-        } catch {
-          /* ignore */
-        }
-      } else {
-        try {
-          leadId = localStorage.getItem("tgo_lead_id") || "";
-        } catch {
-          leadId = "";
-        }
+      // EVERY completed submission posts to /api/lead, which writes the webhook
+      // row and fires the CAPI events. This used to sit behind a once-per-browser
+      // localStorage flag, which meant a second lead from the same device — a
+      // different person on a shared phone, or the same visitor re-applying with
+      // new answers — silently skipped the webhook entirely.
+      //
+      // Duplicate protection belongs server-side and already exists there: the
+      // Meta event_id is stable per email (reg_/qual_ + sha256(email)), so Meta's
+      // 48h window collapses a true re-submit by the SAME person while a
+      // different email is correctly counted as a new lead. A double-click can't
+      // reach here either — onSubmit returns early while `submitting` is true.
+      const res = await fetch("/api/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...finalForm,
+          country_code: dial,
+          disqualified,
+          attribution,
+          eventSourceUrl:
+            typeof window !== "undefined" ? window.location.href : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.error || "Something went wrong. Please try again.");
+      }
+      const leadId: string = data.leadId || "";
+      try {
+        localStorage.setItem("tgo_lead_id", leadId);
+      } catch {
+        /* ignore */
       }
 
       // Forward all landing-page URL params (+ any stored UTMs) so attribution
