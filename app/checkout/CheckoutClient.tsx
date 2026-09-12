@@ -8,6 +8,8 @@ import {
   type Attribution,
 } from "../_lib/attribution";
 import { setMetaAdvancedMatching } from "../_lib/analytics";
+import { trackGa4EventOnce } from "../_lib/ga4";
+import { fireInitiateCheckoutOnce } from "../_lib/meta-client";
 import { type Country } from "../_lib/country";
 import CountrySelect from "../_components/CountrySelect";
 import {
@@ -303,31 +305,46 @@ export default function CheckoutClient({
 
     const phoneDigits = normalizePhone(form.phone);
 
+    // Identity for the pixel/MAM cookie — also read server-side by the ic_event
+    // CAPI route (via tgo_mam) for high EMQ.
+    const mam = {
+      email: form.email,
+      phone: `${form.country_code}${phoneDigits}`,
+      firstName: form.first_name,
+      lastName: form.last_name,
+      city: form.town,
+      country: form.country_iso,
+    };
+
     setSubmitting(true);
     try {
+      // Write the MAM cookie first, then fire checkout-intent events (GA4
+      // ic_event + Meta custom ic_event via CAPI), once per browser, before the
+      // order is created. Validation already passed above.
+      await setMetaAdvancedMatching(mam);
+      trackGa4EventOnce("ic_event");
+      fireInitiateCheckoutOnce();
+
       // 1) Server-side: create the Razorpay order. The server decides the real
-      //    charge — the price shown here is advisory.
+      //    charge — the price shown here is advisory. It also packs the
+      //    customer + attribution into order.notes for the webhook.
       const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
-          phone: phoneDigits,
+          customer: {
+            first_name: form.first_name,
+            last_name: form.last_name,
+            email: form.email,
+            phone: phoneDigits,
+            country_code: form.country_code,
+            town: form.town,
+          },
           attribution: attributionRef.current,
         }),
       });
       const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData?.error || "Order failed");
-
-      // Persist the latest identity to the pixel before conversion.
-      const mam = {
-        email: form.email,
-        phone: `${form.country_code}${phoneDigits}`,
-        firstName: form.first_name,
-        lastName: form.last_name,
-        city: form.town,
-        country: form.country_iso,
-      };
 
       // 2) Open the Razorpay modal.
       const ok = await loadRazorpayScript();
@@ -353,39 +370,19 @@ export default function CheckoutClient({
         notes: { town: form.town },
         theme: { color: "#DC2626" },
         handler: async (response) => {
-          // 3) Verify the signature server-side. The verify route is also what
-          //    fires the Pabbly webhook, so this must finish before we navigate.
+          // Payment captured. Purchase + sales (Meta CAPI) and the Pabbly row
+          // now fire from the Razorpay webhook server-to-server, so they land
+          // even if the buyer never returns to this tab (UPI-away). Here we only
+          // refresh MAM, fire GA4 purchase (best-effort, client-side), and hand
+          // off to the calendar.
           setRedirecting(true);
           try {
             await setMetaAdvancedMatching(mam);
-
-            const v = await fetch("/api/razorpay/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                ...response,
-                customer: { ...form, phone: phoneDigits },
-                attribution: attributionRef.current,
-                amount: orderData.amount,
-                currency: orderData.currency,
-                // The server reduces this to origin-only before sending to Meta
-                // (H&W posture: no path/UTM leak).
-                eventSourceUrl:
-                  typeof window !== "undefined"
-                    ? window.location.href
-                    : undefined,
-              }),
-            });
-            const vd = await v.json();
-            if (!v.ok || !vd.ok)
-              throw new Error(vd?.error || "Verification failed");
-            goToBooking(response.razorpay_payment_id);
-          } catch (err) {
-            // The money is captured but the hand-off failed. Send them to the
-            // calendar anyway — never strand a paying customer on an error.
-            console.error("[checkout] verify failed:", err);
-            goToBooking(response.razorpay_payment_id);
+          } catch {
+            /* non-blocking */
           }
+          trackGa4EventOnce("purchase");
+          goToBooking(response.razorpay_payment_id);
         },
         modal: {
           ondismiss: () => setSubmitting(false),

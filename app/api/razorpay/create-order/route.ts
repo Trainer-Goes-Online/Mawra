@@ -1,34 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
-import { UTM_KEYS, type Attribution } from "@/app/_lib/attribution";
+import { type Attribution } from "@/app/_lib/attribution";
+import { dialCodeToCountryIso } from "@/app/_lib/country";
 import { validateCoupon, discountedPaise } from "@/app/_lib/coupon";
 
-// Force this route to run as a serverless function on Node, not Edge
-// (the razorpay SDK uses Node crypto).
+// Node runtime (razorpay SDK uses node crypto).
 export const runtime = "nodejs";
 
-type Body = {
+// Canonical checkout URL — used as event_source_url for Meta CAPI (origin-only
+// after toOrigin) so no path/UTM leaks (H&W posture).
+const CHECKOUT_URL = "https://vsl.transformationsandbeyond.com/checkout";
+
+type Customer = {
   first_name?: string;
   last_name?: string;
   email?: string;
-  phone?: string;
-  country_code?: string;
+  phone?: string; // digits only
+  country_code?: string; // dial code, e.g. "+91"
   town?: string;
-  coupon?: string;
-  attribution?: Attribution;
 };
+
+type Body = {
+  customer?: Customer;
+  attribution?: Attribution;
+  coupon?: string;
+};
+
+/** Razorpay notes cap: 15 keys, 256 chars/value. Never send a raw over-long value. */
+const trunc = (v: string | undefined | null, n = 256): string =>
+  (v || "").slice(0, n);
 
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as Body;
+    const c = body.customer || {};
+    const attr = body.attribution || {};
 
-    const required = ["first_name", "last_name", "email", "phone", "town"] as const;
+    const required: (keyof Customer)[] = ["first_name", "last_name", "email", "phone", "town"];
     for (const field of required) {
-      if (!body[field] || typeof body[field] !== "string") {
-        return NextResponse.json(
-          { error: `Missing field: ${field}` },
-          { status: 400 }
-        );
+      if (!c[field] || typeof c[field] !== "string") {
+        return NextResponse.json({ error: `Missing field: ${field}` }, { status: 400 });
       }
     }
 
@@ -37,14 +48,12 @@ export async function POST(req: NextRequest) {
     const baseAmount = parseInt(process.env.RAZORPAY_AMOUNT_PAISE || "9700", 10);
     const currency = process.env.RAZORPAY_CURRENCY || "INR";
 
-    // Server-authoritative coupon check. The client price preview is advisory;
-    // this is what actually decides the charge.
+    // Server-authoritative coupon check (client price preview is advisory).
     const appliedCoupon = validateCoupon(body.coupon);
     const amount = discountedPaise(baseAmount, body.coupon);
 
-    // A 100%-off coupon yields ₹0 — Razorpay can't create a zero-amount order,
-    // so we short-circuit to a free booking. The verify route re-checks the
-    // coupon before honouring it, so this can't be forged client-side.
+    // A 100%-off coupon → ₹0 → Razorpay can't create the order → free booking.
+    // The (client) success path re-validates before honouring it.
     if (amount <= 0) {
       return NextResponse.json({
         free: true,
@@ -61,26 +70,56 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rzp = new Razorpay({ key_id: keyId, key_secret: keySecret });
+    // ---- Meta matching identifiers, snapshotted at order-create time ----
+    // The Razorpay webhook is server-to-server (no browser cookies), so we pack
+    // everything it needs into order.notes. Razorpay propagates order notes onto
+    // the payment entity automatically.
+    const phoneDigits = (c.phone || "").replace(/\D/g, "");
+    const dial = c.country_code || "+91";
+    const countryIso = dialCodeToCountryIso(dial); // "+91" -> "IN"
+    const cookieFbc = req.cookies.get("_fbc")?.value || "";
+    const cookieFbp = req.cookies.get("_fbp")?.value || "";
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      req.headers.get("x-real-ip") ||
+      "";
+    const clientUserAgent = req.headers.get("user-agent") || "";
+
+    // Consolidated blobs keep us well under the 15-key notes cap.
+    const cust = JSON.stringify({
+      fn: c.first_name || "",
+      ln: c.last_name || "",
+      em: c.email || "",
+      ph: phoneDigits,
+      ct: c.town || "",
+      co: countryIso,
+      dl: dial,
+    });
+    const utm = JSON.stringify({
+      s: attr.utm_source || "",
+      m: attr.utm_medium || "",
+      c: attr.utm_campaign || "",
+      n: attr.utm_content || "",
+      t: attr.utm_term || "",
+    });
 
     const notes: Record<string, string> = {
-      first_name: body.first_name!,
-      last_name: body.last_name!,
-      email: body.email!,
-      phone: `${body.country_code || "+91"} ${body.phone}`,
-      town: body.town!,
-      product: "1:1 Diagnostic Call with Mawra Ishaque",
+      kind: "client_funnel", // webhook gate — ignore anything else on this account
+      cust: trunc(cust),
+      utm: trunc(utm),
+      clid: trunc(attr.fbclid), // fbclid — hybrid _fbc rebuild + Pabbly
+      fbc: trunc(cookieFbc),
+      fbp: trunc(cookieFbp),
+      ip: trunc(clientIp, 45),
+      ua: trunc(clientUserAgent),
+      esu: CHECKOUT_URL,
+      lp: trunc(attr.landing_url), // Pabbly landing_page_url
+      ref: trunc(attr.referrer), // Pabbly referrer
+      ts: String(attr.captured_at ? Date.parse(attr.captured_at) || Date.now() : Date.now()),
     };
     if (appliedCoupon) notes.coupon = appliedCoupon.code;
-    // Stamp campaign attribution onto the order so it shows in the Razorpay
-    // dashboard (notes cap at 15 keys — the 5 UTM keys keep us well under).
-    if (body.attribution) {
-      for (const k of UTM_KEYS) {
-        const v = body.attribution[k];
-        if (v) notes[k] = String(v).slice(0, 256);
-      }
-    }
 
+    const rzp = new Razorpay({ key_id: keyId, key_secret: keySecret });
     const order = await rzp.orders.create({
       amount,
       currency,

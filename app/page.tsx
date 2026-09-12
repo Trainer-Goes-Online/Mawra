@@ -1,6 +1,6 @@
 import Script from "next/script";
 import FooterDisclaimer from "./_components/FooterDisclaimer";
-import LeadModal from "./_components/LeadModal";
+import AtcTracker from "./_components/AtcTracker";
 import { type SlideItem } from "./_components/TestiSlider";
 import TestiVideoSlider, { type VideoItem } from "./_components/TestiVideoSlider";
 import MarqueeSlider from "./_components/MarqueeSlider";
@@ -421,7 +421,7 @@ export default function Page() {
         </a>
       </main>
 
-      <LeadModal />
+      <AtcTracker />
       <Script src="/funnel.js?v=7" strategy="afterInteractive" />
     </>
   );

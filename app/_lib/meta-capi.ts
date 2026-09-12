@@ -21,7 +21,26 @@ import crypto from "node:crypto";
 // PII, not health data, and keep Event Match Quality high.
 
 const CUSTOM_EVENT_NAME = "sales";
+// H&W exception (deliberate, per owner): we keep the standard `Purchase` event
+// alongside the custom `sales`. Every other funnel stage uses custom-only names.
+const STANDARD_EVENT_NAME = "Purchase";
 const GRAPH_API_VERSION = "v25.0";
+
+/**
+ * Hybrid `_fbc` resolver. `_fbc` is the click id Meta uses to attribute a
+ * conversion to the exact ad. Prefer Meta's own cookie value; when it's absent
+ * (common on iOS / in-app browsers) rebuild `fb.1.<clickTs>.<fbclid>` from the
+ * captured fbclid so attribution stays deterministic. Returns "" if neither.
+ */
+export function resolveFbc(opts: {
+  cookieFbc?: string;
+  fbclid?: string;
+  fbclidTs?: number;
+}): string {
+  if (opts.cookieFbc) return opts.cookieFbc;
+  if (opts.fbclid) return `fb.1.${opts.fbclidTs || Date.now()}.${opts.fbclid}`;
+  return "";
+}
 
 /** SHA-256 hex (lowercase). Used for em/ph/fn/ln/ct/country + external_id. */
 export function sha256(value: string): string {
@@ -89,11 +108,13 @@ export async function sendMetaCapiEvent(params: MetaCapiParams) {
   const hashedCt = ct ? sha256(ct) : undefined;
   const hashedCountry = country ? sha256(country) : undefined;
 
-  const event = {
-    event_name: CUSTOM_EVENT_NAME,
+  // Shared base — Purchase (standard) + sales (custom) differ only by
+  // event_name, share event_id/user_data/custom_data. Meta dedups each by
+  // event_name+event_id.
+  const base = {
     event_time: Math.floor(Date.now() / 1000),
     event_id: params.paymentId,
-    action_source: "website",
+    action_source: "website" as const,
     event_source_url: toOrigin(params.eventSourceUrl),
     user_data: {
       em: [hashedEmail],
@@ -119,7 +140,12 @@ export async function sendMetaCapiEvent(params: MetaCapiParams) {
     },
   };
 
-  const payload: Record<string, unknown> = { data: [event] };
+  const events = [
+    { ...base, event_name: STANDARD_EVENT_NAME },
+    { ...base, event_name: CUSTOM_EVENT_NAME },
+  ];
+
+  const payload: Record<string, unknown> = { data: events };
   if (params.testEventCode) payload.test_event_code = params.testEventCode;
 
   const res = await fetch(

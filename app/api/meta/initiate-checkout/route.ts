@@ -2,20 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { sha256, toOrigin } from "@/app/_lib/meta-capi";
 import { TRACKING_HOST } from "@/app/_lib/tracking";
 
-// Server-side Meta CAPI: standard `Schedule` + custom `call_booked`, fired when
-// the visitor completes the Calendly booking. Sends BOTH events in one call
-// (same event_id, different event_name) — mirrors the free-registration pair.
-// user_data is enriched from the tgo_mam cookie (already-hashed em/ph/fn/ln/
-// country/external_id set at form-fill) → high EMQ, plus fbc/fbp/IP/UA. Once per
-// browser (client flag) + Meta's 48h event_id dedup. Never fails the booking.
+// Server-side Meta CAPI: custom `ic_event`, fired when the visitor clicks Pay on
+// /checkout with a valid form (checkout intent), once per browser. H&W: custom
+// name ONLY — no standard `InitiateCheckout`. user_data is enriched from the
+// tgo_mam cookie (already-hashed identity set at form-fill) + fbc/fbp/IP/UA.
+// Never fails the click — always returns 200 with a status.
 export const runtime = "nodejs";
 
 const GRAPH_API_VERSION = "v25.0";
-// H&W: custom-only. We fire ONLY the neutral custom `call_booked` — NOT the
-// standard `Schedule` (restricted by name on this dataset).
-const SCHEDULE_CUSTOM_EVENT = process.env.SCHEDULE_CUSTOM_EVENT || "call_booked";
+const IC_CUSTOM_EVENT = process.env.IC_CUSTOM_EVENT || "ic_event";
 
-/** Pull the already-hashed MAM identity out of the tgo_mam cookie, if present. */
 function readMam(raw: string | undefined): Record<string, string> {
   if (!raw) return {};
   try {
@@ -38,11 +34,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: "env_missing" });
     }
 
-    let body: { eventSourceUrl?: string; leadId?: string } = {};
+    let body: { eventSourceUrl?: string } = {};
     try {
       body = await req.json();
     } catch {
-      /* beacon may send an empty body during navigation */
+      /* beacon may send an empty body */
     }
 
     const fbc = req.cookies.get("_fbc")?.value || undefined;
@@ -53,7 +49,6 @@ export async function POST(req: NextRequest) {
       undefined;
     const clientUserAgent = req.headers.get("user-agent") || undefined;
 
-    // Hashed identity from form-fill (verbatim — already SHA-256, never re-hash).
     const mam = readMam(req.cookies.get("tgo_mam")?.value);
 
     const userData: Record<string, unknown> = {
@@ -70,25 +65,23 @@ export async function POST(req: NextRequest) {
       ...(clientIp && { client_ip_address: clientIp }),
     };
 
-    // Stable event_id: prefer the lead_id carried through the funnel so the pair
-    // is deterministic; fall back to fbp-derived, then time-based.
-    const leadId = (body.leadId || "").trim();
-    const eventId = leadId
-      ? `${leadId}_sched`
+    // Same browser → same event_id (Meta 48h dedup). Prefer the hashed email.
+    const eventId = mam.em
+      ? sha256(`${mam.em}|ic`)
       : fbp
-        ? sha256(`${fbp}|sched`)
-        : `sched_${Date.now()}`;
+        ? sha256(`${fbp}|ic`)
+        : `ic_${Date.now()}`;
 
-    const base = {
+    const event = {
+      event_name: IC_CUSTOM_EVENT,
       event_time: Math.floor(Date.now() / 1000),
       event_id: eventId,
       action_source: "website" as const,
       event_source_url: toOrigin(body.eventSourceUrl),
       user_data: userData,
     };
-    const events = [{ ...base, event_name: SCHEDULE_CUSTOM_EVENT }];
 
-    const payload: Record<string, unknown> = { data: events };
+    const payload: Record<string, unknown> = { data: [event] };
     if (process.env.META_TEST_EVENT_CODE) {
       payload.test_event_code = process.env.META_TEST_EVENT_CODE;
     }
@@ -102,13 +95,13 @@ export async function POST(req: NextRequest) {
       }
     );
     if (!res.ok) {
-      console.error("[sched] Meta CAPI FAILED", res.status, await res.text());
+      console.error("[ic] Meta CAPI FAILED", res.status, await res.text());
       return NextResponse.json({ ok: true, capi: "error" });
     }
-    console.log(`[sched] CAPI sent → ${SCHEDULE_CUSTOM_EVENT} (event_id=${eventId})`);
+    console.log(`[ic] CAPI sent → ${IC_CUSTOM_EVENT} (event_id=${eventId})`);
     return NextResponse.json({ ok: true, capi: "sent" });
   } catch (err) {
-    console.error("[sched] error", err);
+    console.error("[ic] error", err);
     return NextResponse.json({ ok: true, capi: "error" });
   }
 }

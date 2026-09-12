@@ -47,9 +47,22 @@ export function fireAddToCartOnce(): void {
 }
 
 /**
- * Standard `Schedule` + custom `call_booked` via CAPI — fired when the visitor
- * completes the Calendly booking. The server enriches user_data with the hashed
- * identity from the tgo_mam cookie (set at form-fill) for high EMQ.
+ * Custom `ic_event` via CAPI — fired when the visitor clicks Pay on /checkout
+ * with a valid form (checkout intent). The server enriches user_data from the
+ * tgo_mam cookie (set at form-fill) for high EMQ.
+ */
+export function fireInitiateCheckoutOnce(): void {
+  if (!isTrackingHost()) return;
+  if (!markOnce("tgo_ic_fired")) return;
+  post("/api/meta/initiate-checkout", {
+    eventSourceUrl: typeof window !== "undefined" ? window.location.href : "",
+  });
+}
+
+/**
+ * Custom `call_booked` via CAPI — fired when the visitor completes the Calendly
+ * booking. The server enriches user_data with the hashed identity from the
+ * tgo_mam cookie (set at form-fill) for high EMQ.
  */
 export function fireScheduleOnce(): void {
   if (!isTrackingHost()) return;

@@ -18,7 +18,8 @@ import { TRACKING_HOST } from "@/app/_lib/tracking";
 export const runtime = "nodejs";
 
 const GRAPH_API_VERSION = "v25.0";
-const ATC_STANDARD_EVENT = process.env.ATC_STANDARD_EVENT || "AddToCart";
+// H&W: custom-only. We fire ONLY the neutral custom `atc_event` — NOT the
+// standard `AddToCart` (restricted by name on this dataset).
 const ATC_CUSTOM_EVENT = process.env.ATC_CUSTOM_EVENT || "atc_event";
 
 export async function POST(req: NextRequest) {
@@ -67,10 +68,7 @@ export async function POST(req: NextRequest) {
         ...(clientIp && { client_ip_address: clientIp }),
       },
     };
-    const events = [
-      { ...base, event_name: ATC_STANDARD_EVENT },
-      { ...base, event_name: ATC_CUSTOM_EVENT },
-    ];
+    const events = [{ ...base, event_name: ATC_CUSTOM_EVENT }];
 
     const payload: Record<string, unknown> = { data: events };
     if (process.env.META_TEST_EVENT_CODE) {
@@ -89,9 +87,7 @@ export async function POST(req: NextRequest) {
       console.error("[atc] Meta CAPI FAILED", res.status, await res.text());
       return NextResponse.json({ ok: true, capi: "error" });
     }
-    console.log(
-      `[atc] CAPI sent → ${ATC_STANDARD_EVENT} + ${ATC_CUSTOM_EVENT} (event_id=${eventId})`
-    );
+    console.log(`[atc] CAPI sent → ${ATC_CUSTOM_EVENT} (event_id=${eventId})`);
     return NextResponse.json({ ok: true, capi: "sent" });
   } catch (err) {
     console.error("[atc] error", err);
