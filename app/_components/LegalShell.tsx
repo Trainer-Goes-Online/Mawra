@@ -9,7 +9,7 @@ type LegalShellProps = {
   /** Human-readable last-updated date */
   updated: string;
   /** Which footer link is the current page */
-  current: "privacy" | "terms";
+  current: "privacy" | "terms" | "refund";
   children: React.ReactNode;
 };
 
@@ -54,6 +54,9 @@ export default function LegalShell({
               </Link>
               <Link href="/terms" className={current === "terms" ? "is-current" : ""}>
                 Terms
+              </Link>
+              <Link href="/refund" className={current === "refund" ? "is-current" : ""}>
+                Refund
               </Link>
             </nav>
             <FooterDisclaimer />

@@ -1,22 +1,23 @@
 import type { Metadata } from "next";
 import CheckoutClient from "./CheckoutClient";
-import { getPriceLabel, getAmountPaise } from "../_lib/price";
+import { getPriceLabel, getMrpLabel } from "../_lib/price";
 
 export function generateMetadata(): Metadata {
   const price = getPriceLabel();
   return {
-    title: `Complete Your Booking · ${price} · Mawra Breakthrough Call`,
+    title: `Complete Your Booking · ${price} · 1:1 Diagnostic Call with Mawra Ishaque`,
     description:
-      "Secure your 1:1 Breakthrough Call with Mawra. 100% money-back guarantee if the call doesn't deliver value.",
+      "Book your 1:1 diagnostic call with Mawra Ishaque. Personalised diagnosis, an honest fit check, and your transformation roadmap.",
   };
 }
 
 export default function CheckoutPage() {
   const price = getPriceLabel();
-  const amountPaise = getAmountPaise();
+  const mrp = getMrpLabel();
+
   return (
     <>
-      <link rel="stylesheet" href="/checkout.css?v=4" />
+      <link rel="stylesheet" href="/checkout.css?v=6" />
 
       {/* Top secure-checkout strip */}
       <header className="secure-bar">
@@ -44,38 +45,23 @@ export default function CheckoutPage() {
           <span className="ico" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="9" />
-              <path d="M9 12h6" />
-              <path d="M12 9v6" />
+              <path d="M12 7v5l3 2" />
             </svg>
           </span>
-          100% Money-Back
+          Limited Slots
         </span>
       </header>
 
       <main className="checkout-page">
         <div className="checkout-wrap">
-          {/* Header block */}
-          <div className="checkout-head">
-            <span className="checkout-eyebrow">
-              <span className="dot" aria-hidden="true">✦</span>
-              You're One Step Away
-            </span>
-            <h1 className="checkout-h1">
-              Complete Your <span className="gold">Booking</span>
-            </h1>
-            <p className="checkout-sub">
-              Fill in your details below, we'll send the call link and a reminder to your email.
-            </p>
-          </div>
-
-          {/* Steps 1 + 2 (details form + order-summary accordion) live in the
-              client component so the coupon total is shared and the summary can
-              collapse / reorder above the form on mobile. */}
-          <CheckoutClient priceLabel={price} amountPaise={amountPaise} />
-
-          <p className="checkout-finetext">
-            By completing this booking you agree to our <a href="/terms" className="finetext-link">Terms</a> and <a href="/privacy" className="finetext-link">Privacy Policy</a>. We never share your details. Your call slot is confirmed only after payment.
-          </p>
+          {/* Everything below — Order Summary → Pricing → Payment Methods →
+              Your Details → Checkbox → Pay Button — lives in the client
+              component so the price, the consent checkbox and the pay button
+              share one piece of state. */}
+          <CheckoutClient
+            priceLabel={price}
+            mrpLabel={mrp}
+          />
         </div>
       </main>
     </>

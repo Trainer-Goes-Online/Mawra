@@ -25,3 +25,17 @@ export function formatINR(paise: number): string {
 export function getPriceLabel(): string {
   return formatINR(getAmountPaise());
 }
+
+/**
+ * The struck-through "was" price, in paise. Display only — never charged.
+ * Defaults to ₹999 per the checkout spec.
+ */
+export function getMrpPaise(): number {
+  const n = parseInt(process.env.RAZORPAY_MRP_PAISE || "99900", 10);
+  return Number.isFinite(n) && n > 0 ? n : 99900;
+}
+
+/** The struck-through price label, e.g. "₹999". */
+export function getMrpLabel(): string {
+  return formatINR(getMrpPaise());
+}

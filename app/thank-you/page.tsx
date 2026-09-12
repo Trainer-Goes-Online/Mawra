@@ -6,7 +6,7 @@ import MamReapply from "../_components/MamReapply";
 export const metadata: Metadata = {
   title: "Booking Confirmed · Coach Mawra",
   description:
-    "Your free assessment call with Coach Mawra is confirmed. Check your email for the call link and details.",
+    "Your 1:1 diagnostic call with Mawra Ishaque is confirmed. Check your email for the call link and details.",
 };
 
 export default function ThankYouPage() {
@@ -25,7 +25,7 @@ export default function ThankYouPage() {
                 Booking <span className="accent">Confirmed.</span>
               </h1>
               <p className="sec-lede" style={{ fontFamily: "'DM Sans', sans-serif", fontStyle: "italic", marginTop: 10 }}>
-                Your free assessment call with Coach Mawra is locked in.
+                Your 1:1 diagnostic call with Mawra Ishaque is locked in.
               </p>
               <p style={{ maxWidth: 560, margin: "18px auto 0", fontFamily: "'DM Sans', sans-serif", fontSize: 15.5, lineHeight: 1.7, color: "rgba(71,85,105,0.82)", textAlign: "center" }}>
                 The Zoom link and call details are on their way to your inbox — check your
@@ -90,7 +90,7 @@ export default function ThankYouPage() {
               <span>Coach Mawra · Fat Loss and Identity Transformation</span>
               <span className="foot-ornament" aria-hidden="true">✦</span>
               <span className="foot-links">
-                <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/refund">Refund</a>
               </span>
             </div>
             <FooterDisclaimer />

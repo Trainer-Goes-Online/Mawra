@@ -8,10 +8,18 @@ import { UTM_KEYS } from "../_lib/attribution";
 export const metadata: Metadata = {
   title: "Pick Your Slot · Coach Mawra",
   description:
-    "Pick a 60-minute slot for your free assessment call with Coach Mawra.",
+    "Pick a 60-minute slot for your 1:1 diagnostic call with Mawra Ishaque.",
 };
 
-type SP = { lead?: string } & Partial<Record<(typeof UTM_KEYS)[number], string>>;
+type SP = {
+  lead?: string;
+  /** Razorpay payment id, set by the checkout redirect. */
+  p?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+} & Partial<Record<(typeof UTM_KEYS)[number], string>>;
 
 export default async function BookACallPage({
   searchParams,
@@ -21,8 +29,9 @@ export default async function BookACallPage({
   const sp = await searchParams;
   const baseCalendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || "";
 
-  // Forward any UTM params (carried through the funnel) into the Calendly URL so
-  // the booking record is attributed to the original campaign too.
+  // Forward UTM params (carried through the funnel) into the Calendly URL so the
+  // booking record is attributed to the original campaign, and prefill the
+  // invitee fields with what was just entered at checkout so nobody retypes.
   let calendlyUrl = "";
   if (baseCalendlyUrl) {
     try {
@@ -31,6 +40,22 @@ export default async function BookACallPage({
         const v = sp?.[k];
         if (v) calUrl.searchParams.set(k, v);
       }
+
+      const fullName = [sp?.first_name, sp?.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      if (fullName) calUrl.searchParams.set("name", fullName);
+      if (sp?.first_name) calUrl.searchParams.set("first_name", sp.first_name);
+      if (sp?.last_name) calUrl.searchParams.set("last_name", sp.last_name);
+      if (sp?.email) calUrl.searchParams.set("email", sp.email);
+      // Calendly reads the invitee phone from this param when the event has a
+      // phone field configured; harmless when it doesn't.
+      if (sp?.phone) calUrl.searchParams.set("location", sp.phone);
+      // The payment id is deliberately NOT pushed into Calendly's UTM params —
+      // that would overwrite the real ad attribution. The booking is matched
+      // back to the payment on email + phone, which Pabbly already carries.
+
       calendlyUrl = calUrl.toString();
     } catch {
       calendlyUrl = baseCalendlyUrl;
@@ -46,7 +71,7 @@ export default async function BookACallPage({
           <div className="wrap narrow">
             <div className="sec-head reveal" style={{ textAlign: "center" }}>
               <span className="eyebrow-pill" style={{ justifyContent: "center" }}>
-                <span className="dot"></span>Details Received · One Last Step
+                <span className="dot"></span>Payment Received · One Last Step
               </span>
               <h1 className="sec-h2" style={{ marginTop: 20 }}>
                 Pick Your <span className="accent">Slot.</span>
@@ -58,8 +83,8 @@ export default async function BookACallPage({
 
             <div className="hero-cred-pills reveal" style={{ justifyContent: "center", marginTop: 22 }}>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>60 Minutes · 1-on-1</span>
-              <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>100% Free</span>
-              <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>No Card Needed</span>
+              <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>Slot Paid &amp; Held</span>
+              <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>Pick Any Time That Suits You</span>
             </div>
 
             <div className="reveal" style={{ marginTop: 28 }}>
@@ -121,7 +146,7 @@ export default async function BookACallPage({
               <span>Coach Mawra · Fat Loss and Identity Transformation</span>
               <span className="foot-ornament" aria-hidden="true">✦</span>
               <span className="foot-links">
-                <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/refund">Refund</a>
               </span>
             </div>
             <FooterDisclaimer />
