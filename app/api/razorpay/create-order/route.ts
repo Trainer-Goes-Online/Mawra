@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       email: body.email!,
       phone: `${body.country_code || "+91"} ${body.phone}`,
       town: body.town!,
-      product: "1:1 Breakthrough Call",
+      product: "1:1 Diagnostic Call with Mawra Ishaque",
     };
     if (appliedCoupon) notes.coupon = appliedCoupon.code;
     // Stamp campaign attribution onto the order so it shows in the Razorpay
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     const order = await rzp.orders.create({
       amount,
       currency,
-      receipt: `srbk_${Date.now()}`,
+      receipt: `mwdc_${Date.now()}`,
       notes,
     });
 

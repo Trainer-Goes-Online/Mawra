@@ -8,7 +8,7 @@ import StoryVideos, { type StoryVideo } from "./_components/StoryVideos";
 import HeroVsl from "./_components/HeroVsl";
 import UrgencyTimer from "./_components/UrgencyTimer";
 
-const CTA_LABEL = "Book Your FREE Identity Transformation Call";
+const CTA_LABEL = "Click Here To Book Your Identity Transformation Call";
 
 // Before/after client results — Mandawi, Sahana, Leonna (with captions) first,
 // then the remaining two. Images in /public/assets/results.
@@ -205,7 +205,7 @@ export default function Page() {
               </div>
 
               <div className="hero-cta-block">
-                <a className="cta-big" href="#book" data-lead="1">
+                <a className="cta-big" href="/checkout">
                   {CTA_LABEL}
                   <span className="arrow">→</span>
                 </a>
@@ -308,7 +308,7 @@ export default function Page() {
             </div>
 
             <div className="faq-closing reveal" style={{ marginTop: 48 }}>
-              <a className="cta-big" href="#book" data-lead="1">{CTA_LABEL}<span className="arrow">→</span></a>
+              <a className="cta-big" href="/checkout">{CTA_LABEL}<span className="arrow">→</span></a>
               <UrgencyTimer />
             </div>
           </div>
@@ -337,7 +337,7 @@ export default function Page() {
               <div className="faq-closing-plaque">
                 <p className="faq-closing-lead">Then you&apos;re exactly the kind of woman<br /> Mawra works with.</p>
               </div>
-              <a className="cta-big" href="#book" data-lead="1">{CTA_LABEL}<span className="arrow">→</span></a>
+              <a className="cta-big" href="/checkout">{CTA_LABEL}<span className="arrow">→</span></a>
               <UrgencyTimer />
             </div>
           </div>
@@ -395,7 +395,7 @@ export default function Page() {
             </div>
 
             <div className="faq-closing reveal">
-              <a className="cta-big" href="#book" data-lead="1">{CTA_LABEL}<span className="arrow">→</span></a>
+              <a className="cta-big" href="/checkout">{CTA_LABEL}<span className="arrow">→</span></a>
               <UrgencyTimer />
             </div>
           </div>
@@ -407,14 +407,14 @@ export default function Page() {
             <span>Coach Mawra · Fat Loss and Identity Transformation</span>
             <span className="foot-ornament" aria-hidden="true">✦</span>
             <span className="foot-links">
-              <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+              <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/refund">Refund</a>
             </span>
           </div>
           <FooterDisclaimer />
         </section>
 
         {/* ============ STICKY CTA ============ */}
-        <a className="sticky-cta" id="stickyCta" href="#book" data-lead="1">
+        <a className="sticky-cta" id="stickyCta" href="/checkout">
           {/* Desktop: timer left, CTA right. Mobile: CTA only. */}
           <UrgencyTimer className="ut-sticky" />
           <span className="sticky-arrow">{CTA_LABEL} <span className="ar">→</span></span>

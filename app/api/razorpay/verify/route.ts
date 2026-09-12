@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
+import Razorpay from "razorpay";
 import { UTM_KEYS, type Attribution } from "@/app/_lib/attribution";
 import { sendMetaCapiEvent, sha256, toOrigin } from "@/app/_lib/meta-capi";
 import { dialCodeToCountryIso } from "@/app/_lib/country";
@@ -53,6 +54,67 @@ async function sendToPabbly(payload: Record<string, unknown>) {
     }
   } catch (err) {
     console.error("Pabbly webhook error:", err);
+  }
+}
+
+/**
+ * Instrument details for a captured payment — how the customer actually paid.
+ * Best-effort: the Pabbly row must still go out if Razorpay is slow or errors,
+ * so every field falls back to "" and the caller never throws.
+ */
+type PaymentFacts = {
+  payment_method: string; // upi | card | netbanking | wallet | emi
+  payment_bank: string;
+  payment_wallet: string;
+  payment_vpa: string; // UPI id
+  card_network: string;
+  card_last4: string;
+  payment_status: string; // captured | authorized | failed
+  razorpay_fee: number; // rupees
+  razorpay_tax: number; // rupees
+};
+
+const EMPTY_PAYMENT_FACTS: PaymentFacts = {
+  payment_method: "",
+  payment_bank: "",
+  payment_wallet: "",
+  payment_vpa: "",
+  card_network: "",
+  card_last4: "",
+  payment_status: "",
+  razorpay_fee: 0,
+  razorpay_tax: 0,
+};
+
+async function fetchPaymentFacts(paymentId: string): Promise<PaymentFacts> {
+  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) return EMPTY_PAYMENT_FACTS;
+  try {
+    const rzp = new Razorpay({ key_id: keyId, key_secret: keySecret });
+    // The SDK's RazorpayPayment type omits several fields Razorpay actually
+    // returns (vpa, bank, wallet), so read it as a loose record.
+    const p = (await rzp.payments.fetch(paymentId)) as unknown as Record<
+      string,
+      unknown
+    >;
+    const card = (p.card as Record<string, unknown> | undefined) || {};
+    const num = (v: unknown) => (typeof v === "number" ? v / 100 : 0);
+    const str = (v: unknown) => (v == null ? "" : String(v));
+    return {
+      payment_method: str(p.method),
+      payment_bank: str(p.bank),
+      payment_wallet: str(p.wallet),
+      payment_vpa: str(p.vpa),
+      card_network: str(card.network),
+      card_last4: str(card.last4),
+      payment_status: str(p.status),
+      razorpay_fee: num(p.fee),
+      razorpay_tax: num(p.tax),
+    };
+  } catch (err) {
+    console.error("[verify] Could not fetch payment details:", err);
+    return EMPTY_PAYMENT_FACTS;
   }
 }
 
@@ -192,13 +254,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // How they actually paid (UPI / card / netbanking …). Skipped for free
+    // coupon bookings, which have no Razorpay payment to look up.
+    const paymentFacts = free
+      ? EMPTY_PAYMENT_FACTS
+      : await fetchPaymentFacts(paymentId);
+
     // ---- Enriched Pabbly CRM payload (23 canonical fields, A–W of the Sheet) ----
     // Every field is always present (""/0 when empty) so Pabbly's column mapping
     // stays stable. Extra keys (product/full_name/gclid) are harmless — Pabbly
     // maps only what the Sheet needs.
     const payload: Record<string, unknown> = {
       event: "payment_success",
-      product: "1:1 Breakthrough Call",
+      product: "1:1 Diagnostic Call with Mawra Ishaque",
       // 23-field CRM schema (columns A–W)
       lead_id: paymentId, // 1
       created_at: new Date().toISOString(), // 2
@@ -220,6 +288,7 @@ export async function POST(req: NextRequest) {
       // utm_source/medium/campaign/content/term (18–22) + fbclid (23) filled below
       // ---- extras kept for backwards-compat / convenience ----
       order_id: razorpay_order_id || "",
+      payment_id: paymentId,
       coupon: appliedCouponCode,
       amount_paise: amount ?? null,
       currency: resolvedCurrency,
@@ -228,6 +297,8 @@ export async function POST(req: NextRequest) {
       referrer: attribution?.referrer || "",
       captured_at: attribution?.captured_at || "",
       timestamp: new Date().toISOString(),
+      // ---- how the payment was actually made ----
+      ...paymentFacts,
     };
     // Flatten UTM / click-id keys to the top level (covers fields 18–23 + gclid).
     for (const k of UTM_KEYS) {

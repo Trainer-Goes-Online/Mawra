@@ -8,8 +8,15 @@ import {
   type Attribution,
 } from "../_lib/attribution";
 import { setMetaAdvancedMatching } from "../_lib/analytics";
-import { dialCodeToCountryIso } from "../_lib/country";
-import { validateCoupon, type AppliedCoupon } from "../_lib/coupon";
+import { type Country } from "../_lib/country";
+import CountrySelect from "../_components/CountrySelect";
+import {
+  validateField,
+  normalizePhone,
+  phonePlaceholder,
+  phoneMaxDigits,
+  type FieldName,
+} from "../_lib/validation";
 
 declare global {
   interface Window {
@@ -29,7 +36,7 @@ type RazorpayOptions = {
   notes: Record<string, string>;
   theme: { color: string };
   handler: (response: RazorpayPaymentResponse) => void;
-  modal?: { ondismiss?: () => void };
+  modal?: { ondismiss?: () => void; escape?: boolean };
 };
 
 type RazorpayPaymentResponse = {
@@ -46,6 +53,7 @@ type FormState = {
   email: string;
   phone: string;
   country_code: string;
+  country_iso: string;
   town: string;
 };
 
@@ -55,53 +63,74 @@ const initialState: FormState = {
   email: "",
   phone: "",
   country_code: "+91",
+  country_iso: "IN",
   town: "",
 };
 
-/** Pure INR formatter (client-safe — no env access, unlike app/_lib/price.ts). */
-function formatINR(paise: number): string {
-  const rupees = paise / 100;
-  const body = Number.isInteger(rupees)
-    ? rupees.toLocaleString("en-IN")
-    : rupees.toLocaleString("en-IN", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-  return `₹${body}`;
+const FIELD_ORDER: FieldName[] = [
+  "first_name",
+  "last_name",
+  "email",
+  "phone",
+  "town",
+];
+
+type Errors = Partial<Record<FieldName, string>>;
+type Touched = Partial<Record<FieldName, boolean>>;
+
+function ErrorText({ id, children }: { id: string; children: string }) {
+  return (
+    <p className="field-error" id={id} role="alert">
+      <svg
+        viewBox="0 0 24 24"
+        width="13"
+        height="13"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7.5v5M12 16.2v.2" />
+      </svg>
+      {children}
+    </p>
+  );
 }
 
 export default function CheckoutClient({
   priceLabel = "₹97",
-  amountPaise = 9700,
+  mrpLabel = "₹999",
 }: {
   priceLabel?: string;
-  amountPaise?: number;
+  mrpLabel?: string;
 }) {
   const [form, setForm] = useState<FormState>(initialState);
+  const [errors, setErrors] = useState<Errors>({});
+  const [touched, setTouched] = useState<Touched>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Coupon state (shared between the form input and the order-summary total).
-  const [couponInput, setCouponInput] = useState("");
-  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
-  const [couponMsg, setCouponMsg] = useState<
-    { type: "ok" | "err"; text: string } | null
-  >(null);
+  // Mandatory consent checkbox (spec §2) — the pay button is blocked until it
+  // is ticked, so nobody reaches Razorpay without seeing the 10-second notice.
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
 
-  // Order-summary accordion (mobile only — CSS forces it open on desktop).
-  const [summaryOpen, setSummaryOpen] = useState(false);
+  // Order-summary accordion — open by default on every breakpoint; the user can
+  // collapse it from the "Tap for more details" row.
+  const [summaryOpen, setSummaryOpen] = useState(true);
+
+  // Shown between "payment captured" and "calendar opens". This is the visual
+  // promise made by the 10-second notice above the form: the tab must stay open
+  // while the signature is verified and the webhook fires.
+  const [redirecting, setRedirecting] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
   // Attribution captured on the landing page (localStorage), merged with any
   // UTMs present on the current checkout URL.
   const attributionRef = useRef<Attribution>({});
-
-  // Live discounted price derived from the applied coupon.
-  const discountedPaise = coupon
-    ? Math.max(0, Math.round(amountPaise * (1 - coupon.percentOff / 100)))
-    : amountPaise;
-  const isFree = discountedPaise <= 0;
-  const discountedLabel = formatINR(discountedPaise);
 
   useEffect(() => {
     try {
@@ -125,31 +154,36 @@ export default function CheckoutClient({
     }
   }, []);
 
-  // Fire Manual Advanced Matching as soon as the form is fully filled + valid —
-  // independent of whether the user pays. This identifies all subsequent pixel
-  // events AND persists hashed identity to the tgo_mam cookie (so even a return
-  // visit gets a high-EMQ PageView). Debounced 500ms. Custom-only H&W posture:
-  // this only enriches PageView — it does NOT fire any conversion event.
+  // Warn on tab close while the post-payment redirect is in flight. Browsers
+  // show their own generic wording, but the prompt itself is the safeguard the
+  // spec asks for ("leaving early may stop your booking from being completed").
   useEffect(() => {
-    const allFilled =
-      form.first_name.trim() &&
-      form.last_name.trim() &&
-      form.email.trim() &&
-      form.town.trim() &&
-      form.phone.trim();
-    if (!allFilled) return;
-    const emailOk = /.+@.+\..+/.test(form.email.trim());
-    const phoneOk = /^[0-9]{6,15}$/.test(form.phone.trim());
-    if (!emailOk || !phoneOk) return;
+    if (!redirecting) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [redirecting]);
+
+  // Fire Manual Advanced Matching as soon as the form is filled and every field
+  // passes — independent of whether the user pays. Debounced 500ms. Custom-only
+  // H&W posture: this enriches PageView, it does NOT fire a conversion event.
+  useEffect(() => {
+    const allValid = FIELD_ORDER.every(
+      (f) => !validateField(f, form[f], form.country_iso)
+    );
+    if (!allValid) return;
 
     const timer = setTimeout(() => {
       void setMetaAdvancedMatching({
         email: form.email,
-        phone: `${form.country_code}${form.phone}`,
+        phone: `${form.country_code}${normalizePhone(form.phone)}`,
         firstName: form.first_name,
         lastName: form.last_name,
         city: form.town,
-        country: dialCodeToCountryIso(form.country_code),
+        country: form.country_iso,
       });
     }, 500);
     return () => clearTimeout(timer);
@@ -157,32 +191,65 @@ export default function CheckoutClient({
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    // Re-check a field the user has already left, so a correction clears the
+    // message the moment it becomes valid instead of waiting for another blur.
+    if (FIELD_ORDER.includes(key as FieldName) && touched[key as FieldName]) {
+      const msg = validateField(
+        key as FieldName,
+        String(value),
+        form.country_iso
+      );
+      setErrors((e) => ({ ...e, [key]: msg || undefined }));
+    }
     if (error) setError(null);
   }
 
-  function applyCoupon() {
-    const c = validateCoupon(couponInput);
-    if (!c) {
-      setCoupon(null);
-      setCouponMsg({ type: "err", text: "That coupon code isn't valid." });
-      return;
-    }
-    setCoupon(c);
-    setCouponMsg({
-      type: "ok",
-      text:
-        c.percentOff >= 100
-          ? `Coupon ${c.code} applied — your call is free!`
-          : `Coupon ${c.code} applied — ${c.percentOff}% off.`,
-    });
-    // Reveal the summary so the new total is visible on mobile.
-    setSummaryOpen(true);
+  function onBlurField(field: FieldName) {
+    setTouched((t) => ({ ...t, [field]: true }));
+    const msg = validateField(field, form[field], form.country_iso);
+    setErrors((e) => ({ ...e, [field]: msg || undefined }));
   }
 
-  function removeCoupon() {
-    setCoupon(null);
-    setCouponInput("");
-    setCouponMsg(null);
+  function onCountryChange(c: Country) {
+    // Trim the number to the new country's maximum, so switching from a 15-digit
+    // country to an 8-digit one can't leave an over-long value behind.
+    const trimmed = normalizePhone(form.phone).slice(0, phoneMaxDigits(c.iso));
+    setForm((prev) => ({
+      ...prev,
+      country_code: c.dial,
+      country_iso: c.iso,
+      phone: trimmed,
+    }));
+    // Phone rules are country-specific, so re-check against the new country.
+    if (touched.phone) {
+      const msg = validateField("phone", trimmed, c.iso);
+      setErrors((e) => ({ ...e, phone: msg || undefined }));
+    }
+  }
+
+  /** Validate everything. Returns the first invalid field, or null if clean. */
+  function validateAll(): FieldName | null {
+    const next: Errors = {};
+    let first: FieldName | null = null;
+    for (const f of FIELD_ORDER) {
+      const msg = validateField(f, form[f], form.country_iso);
+      if (msg) {
+        next[f] = msg;
+        if (!first) first = f;
+      }
+    }
+    setErrors(next);
+    setTouched(
+      FIELD_ORDER.reduce<Touched>((acc, f) => ({ ...acc, [f]: true }), {})
+    );
+    return first;
+  }
+
+  function focusField(field: FieldName) {
+    const el = document.getElementById(field);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Focus after the scroll settles so the browser doesn't fight the animation.
+    setTimeout(() => (el as HTMLInputElement | null)?.focus(), 260);
   }
 
   function loadRazorpayScript(): Promise<boolean> {
@@ -196,34 +263,56 @@ export default function CheckoutClient({
     });
   }
 
-  /** Shared success redirect (used by both the paid + free-coupon flows). */
+  /**
+   * Post-payment hand-off to the calendar. Carries the payment id (so the
+   * booking can be matched back to the payment), every UTM, and the customer's
+   * name/email so Calendly prefills and nobody retypes what they just entered.
+   */
   function goToBooking(paymentId: string) {
+    const params = new URLSearchParams();
+    params.set("p", paymentId);
+    params.set("first_name", form.first_name);
+    params.set("last_name", form.last_name);
+    params.set("email", form.email);
+    params.set("phone", `${form.country_code}${normalizePhone(form.phone)}`);
     const utmQs = utmQueryString(attributionRef.current);
     window.location.href =
-      `/book-a-call?p=${encodeURIComponent(paymentId)}` +
-      (utmQs ? `&${utmQs}` : "");
+      `/book-a-call?${params.toString()}` + (utmQs ? `&${utmQs}` : "");
   }
 
   async function onPay(e?: FormEvent) {
     if (e) e.preventDefault();
     setError(null);
 
-    // Native HTML5 validation first
-    if (formRef.current && !formRef.current.checkValidity()) {
-      formRef.current.reportValidity();
+    // Our own validation — the form carries noValidate so the browser never
+    // shows its default "Please fill out this field" bubble.
+    const firstBad = validateAll();
+    if (firstBad) {
+      focusField(firstBad);
       return;
     }
 
+    // Mandatory acknowledgement gate.
+    if (!consent) {
+      setConsentError(true);
+      document
+        .getElementById("consent-box")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    const phoneDigits = normalizePhone(form.phone);
+
     setSubmitting(true);
     try {
-      // 1) Server-side: create Razorpay order (server re-validates the coupon
-      //    and decides the real charge — a 100%-off coupon returns free:true).
+      // 1) Server-side: create the Razorpay order. The server decides the real
+      //    charge — the price shown here is advisory.
       const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          coupon: coupon?.code,
+          phone: phoneDigits,
           attribution: attributionRef.current,
         }),
       });
@@ -233,37 +322,14 @@ export default function CheckoutClient({
       // Persist the latest identity to the pixel before conversion.
       const mam = {
         email: form.email,
-        phone: `${form.country_code}${form.phone}`,
+        phone: `${form.country_code}${phoneDigits}`,
         firstName: form.first_name,
         lastName: form.last_name,
         city: form.town,
-        country: dialCodeToCountryIso(form.country_code),
+        country: form.country_iso,
       };
 
-      // ── FREE ORDER (100%-off coupon) — skip Razorpay entirely ──
-      if (orderData.free) {
-        await setMetaAdvancedMatching(mam);
-        const v = await fetch("/api/razorpay/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            free: true,
-            coupon: coupon?.code,
-            customer: form,
-            attribution: attributionRef.current,
-            amount: 0,
-            currency: orderData.currency || "INR",
-            eventSourceUrl:
-              typeof window !== "undefined" ? window.location.href : undefined,
-          }),
-        });
-        const vd = await v.json();
-        if (!v.ok || !vd.ok) throw new Error(vd?.error || "Could not confirm booking");
-        goToBooking(vd.paymentId);
-        return;
-      }
-
-      // ── PAID ORDER — open the Razorpay modal ──
+      // 2) Open the Razorpay modal.
       const ok = await loadRazorpayScript();
       if (!ok || !window.Razorpay) {
         throw new Error("Could not load Razorpay. Please retry.");
@@ -273,29 +339,24 @@ export default function CheckoutClient({
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Coach Mawra",
-        description: "1:1 Breakthrough Call",
+        name: "Mawra Ishaque",
+        description: "1:1 Diagnostic Call · Personalised Consultation",
         order_id: orderData.orderId,
         prefill: {
           name: `${form.first_name} ${form.last_name}`.trim(),
           email: form.email,
-          contact: `${form.country_code}${form.phone}`,
+          contact: `${form.country_code}${phoneDigits}`,
         },
-        // Lock the contact + email to what the customer entered on our form, so
-        // Razorpay can't substitute a previously-remembered contact on this
-        // device. Keeps the payment record consistent with the lead we send to
-        // Pabbly.
+        // Lock contact + email to what was entered on our form so Razorpay
+        // can't substitute a previously-remembered contact on this device.
         readonly: { email: true, contact: true },
-        notes: {
-          town: form.town,
-          ...(coupon ? { coupon: coupon.code } : {}),
-        },
-        theme: { color: "#0A50C2" },
+        notes: { town: form.town },
+        theme: { color: "#DC2626" },
         handler: async (response) => {
-          // 4) Verify signature on server
+          // 3) Verify the signature server-side. The verify route is also what
+          //    fires the Pabbly webhook, so this must finish before we navigate.
+          setRedirecting(true);
           try {
-            // Refresh MAM with the latest form values right before conversion so
-            // the persisted identity is as complete as possible for the pixel.
             await setMetaAdvancedMatching(mam);
 
             const v = await fetch("/api/razorpay/verify", {
@@ -303,13 +364,12 @@ export default function CheckoutClient({
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 ...response,
-                customer: form,
-                coupon: coupon?.code,
+                customer: { ...form, phone: phoneDigits },
                 attribution: attributionRef.current,
                 amount: orderData.amount,
                 currency: orderData.currency,
-                // The page the user is on at conversion. The server reduces this
-                // to origin-only before sending to Meta (H&W: no path/UTM leak).
+                // The server reduces this to origin-only before sending to Meta
+                // (H&W posture: no path/UTM leak).
                 eventSourceUrl:
                   typeof window !== "undefined"
                     ? window.location.href
@@ -317,12 +377,14 @@ export default function CheckoutClient({
               }),
             });
             const vd = await v.json();
-            if (!v.ok || !vd.ok) throw new Error(vd?.error || "Verification failed");
+            if (!v.ok || !vd.ok)
+              throw new Error(vd?.error || "Verification failed");
             goToBooking(response.razorpay_payment_id);
           } catch (err) {
-            setSubmitting(false);
-            const msg = err instanceof Error ? err.message : "Verification error";
-            setError(msg);
+            // The money is captured but the hand-off failed. Send them to the
+            // calendar anyway — never strand a paying customer on an error.
+            console.error("[checkout] verify failed:", err);
+            goToBooking(response.razorpay_payment_id);
           }
         },
         modal: {
@@ -337,320 +399,436 @@ export default function CheckoutClient({
     }
   }
 
+  const payLabel = submitting
+    ? "Processing…"
+    : `Pay ${priceLabel} and Book My Call`;
+
+  const payArrow = (
+    <span className="ar" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        width="14"
+        height="14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </svg>
+    </span>
+  );
+
   return (
-    <div className="checkout-cards">
-      {/* === Step 1 — Your Details (form) === */}
-      <section className="checkout-card details-card">
-        <header className="step-head">
-          <span className="step-num">1</span>
-          <div>
-            <h2 className="step-title">Your Details</h2>
-            <p className="step-sub">We'll send your call link to these details.</p>
-          </div>
-        </header>
+    <>
+      <div className="checkout-grid">
+        {/* ======================================================
+            ORDER SUMMARY — right column on desktop, first on mobile
+            ====================================================== */}
+        <aside className="col-side">
+          <section className="checkout-card order-card">
+            <h2 className="card-h2">Order Summary</h2>
 
-        <form ref={formRef} className="checkout-form" onSubmit={onPay} noValidate>
-          <input type="hidden" name="landing_url" value="/" />
+            <button
+              type="button"
+              className="order-acc-toggle"
+              aria-expanded={summaryOpen}
+              aria-controls="order-acc-body"
+              data-open={summaryOpen ? "true" : "false"}
+              onClick={() => setSummaryOpen((o) => !o)}
+            >
+              <span className="order-acc-label">
+                {summaryOpen ? "Tap to hide details" : "Tap for more details"}
+              </span>
+              <svg
+                className="order-acc-chev"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
 
-          <div className="form-grid">
-            <div className="field">
-              <label htmlFor="first_name">
-                First Name <span className="req">*</span>
-              </label>
-              <input
-                id="first_name"
-                name="first_name"
-                type="text"
-                placeholder="Priya"
-                required
-                value={form.first_name}
-                onChange={(e) => update("first_name", e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="last_name">
-                Last Name <span className="req">*</span>
-              </label>
-              <input
-                id="last_name"
-                name="last_name"
-                type="text"
-                placeholder="Sharma"
-                required
-                value={form.last_name}
-                onChange={(e) => update("last_name", e.target.value)}
-              />
-            </div>
-            <div className="field field-full">
-              <label htmlFor="email">
-                <span>
-                  Email Address <span className="req">*</span>
-                </span>
-                <span className="field-hint">Call link comes here</span>
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="priya@example.com"
-                required
-                value={form.email}
-                onChange={(e) => update("email", e.target.value)}
-              />
-            </div>
-            <div className="field field-full">
-              <label htmlFor="phone">
-                <span>
-                  Phone Number <span className="req">*</span>
-                </span>
-                <span className="field-hint">For WhatsApp reminders</span>
-              </label>
-              <div className="phone-group">
-                <select
-                  name="country_code"
-                  value={form.country_code}
-                  onChange={(e) => update("country_code", e.target.value)}
-                  aria-label="Country code"
-                >
-                  <option value="+91">🇮🇳 +91</option>
-                  <option value="+1">🇺🇸 +1</option>
-                  <option value="+44">🇬🇧 +44</option>
-                  <option value="+61">🇦🇺 +61</option>
-                  <option value="+971">🇦🇪 +971</option>
-                  <option value="+65">🇸🇬 +65</option>
-                  <option value="+60">🇲🇾 +60</option>
-                  <option value="+64">🇳🇿 +64</option>
-                  <option value="+27">🇿🇦 +27</option>
-                  <option value="+966">🇸🇦 +966</option>
-                </select>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  placeholder="9876543210"
-                  required
-                  pattern="[0-9]{6,15}"
-                  value={form.phone}
-                  onChange={(e) => update("phone", e.target.value)}
-                />
+            <div
+              id="order-acc-body"
+              className="order-acc-body"
+              data-open={summaryOpen ? "true" : "false"}
+            >
+              <div className="order-acc-inner">
+                <div className="order-detail-panel">
+                  <p className="order-detail-eyebrow">
+                    1:1 Diagnostic Call with Mawra Ishaque · Personalised
+                    Consultation
+                  </p>
+                  <ul className="order-benefits">
+                    <li>
+                      <span className="ob-tick" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m5 12 5 5L20 7" />
+                        </svg>
+                      </span>
+                      Personalised Diagnosis &amp; Transformation Roadmap
+                    </li>
+                    <li>
+                      <span className="ob-tick" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m5 12 5 5L20 7" />
+                        </svg>
+                      </span>
+                      Honest fit check — I&apos;ll tell you if the Identity
+                      Transformation Programme isn&apos;t the right fit for you
+                    </li>
+                    <li>
+                      <span className="ob-tick" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m5 12 5 5L20 7" />
+                        </svg>
+                      </span>
+                      Structured programme walk-through and your personalised
+                      path forward
+                    </li>
+                  </ul>
+                  <p className="order-detail-foot">
+                    Limited Slots · Secure Checkout
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="field field-full">
-              <label htmlFor="town">
-                Town / City <span className="req">*</span>
-              </label>
-              <input
-                id="town"
-                name="town"
-                type="text"
-                placeholder="Mumbai"
-                required
-                value={form.town}
-                onChange={(e) => update("town", e.target.value)}
-              />
-            </div>
-          </div>
 
-          {/* === Coupon row === */}
-          <div className="coupon-row">
-            <label htmlFor="coupon" className="coupon-label">
-              Have a coupon?
-            </label>
-            <div className="coupon-input-group">
-              <input
-                id="coupon"
-                name="coupon"
-                type="text"
-                placeholder="Enter code"
-                autoComplete="off"
-                value={couponInput}
-                disabled={!!coupon}
-                onChange={(e) => {
-                  setCouponInput(e.target.value);
-                  if (couponMsg) setCouponMsg(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    applyCoupon();
-                  }
-                }}
-              />
-              {coupon ? (
-                <button
-                  type="button"
-                  className="coupon-btn coupon-btn-remove"
-                  onClick={removeCoupon}
-                >
-                  Remove
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="coupon-btn"
-                  onClick={applyCoupon}
-                  disabled={!couponInput.trim()}
-                >
-                  Apply
-                </button>
-              )}
+            {/* --- Pricing --- */}
+            <div className="order-price-row">
+              <span className="strike">{mrpLabel}</span>
+              <span className="now">{priceLabel}</span>
             </div>
-            {couponMsg && (
-              <p
-                className={`coupon-msg coupon-msg-${couponMsg.type}`}
-                role="status"
-              >
-                {couponMsg.text}
+
+            <div className="order-total">
+              <span className="lbl">Total Due Today</span>
+              <span className="amt">{priceLabel}</span>
+            </div>
+
+            {/* --- Accepted payment methods --- */}
+            <div className="pay-methods" aria-label="Accepted payment methods">
+              <span className="pay-methods-label">Accepted Payment Methods</span>
+              <ul className="pay-methods-list">
+                <li className="pm">
+                  <img src="/assets/payment/upi.svg" alt="UPI" loading="lazy" />
+                </li>
+                <li className="pm">
+                  <img src="/assets/payment/visa.svg" alt="Visa" loading="lazy" />
+                </li>
+                <li className="pm">
+                  <img src="/assets/payment/mastercard.svg" alt="Mastercard" loading="lazy" />
+                </li>
+                <li className="pm">
+                  <img src="/assets/payment/rupay.svg" alt="RuPay" loading="lazy" />
+                </li>
+                <li className="pm">
+                  <img src="/assets/payment/amex.svg" alt="American Express" loading="lazy" />
+                </li>
+                <li className="pm">
+                  <img src="/assets/payment/netbanking.svg" alt="Net Banking" loading="lazy" />
+                </li>
+              </ul>
+            </div>
+          </section>
+        </aside>
+
+        {/* ======================================================
+            YOUR DETAILS → fine text → checkbox → pay button
+            ====================================================== */}
+        <div className="col-main">
+          <section className="checkout-card details-card">
+            <h2 className="card-h2">Your Details</h2>
+            <p className="card-sub">
+              We&apos;ll send your call link to these details.
+            </p>
+
+            {/* The 10-second notice — the most important copy on the page. */}
+            <div className="wait-notice" role="note">
+              <span className="wn-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+              </span>
+              <p>
+                <strong>
+                  Important – please don&apos;t close this page after paying.
+                </strong>{" "}
+                The moment your payment succeeds, please wait up to{" "}
+                <strong>10 seconds</strong> without closing or refreshing this
+                tab. You&apos;ll then be automatically taken to the calendar to
+                select your preferred date and time and book your call. Leaving
+                early may stop your booking from being completed.
+              </p>
+            </div>
+
+            <form
+              ref={formRef}
+              className="checkout-form"
+              onSubmit={onPay}
+              noValidate
+            >
+              <div className="form-grid">
+                <div className="field" data-invalid={errors.first_name ? "true" : "false"}>
+                  <label htmlFor="first_name">
+                    First Name <span className="req">*</span>
+                  </label>
+                  <input
+                    id="first_name"
+                    name="first_name"
+                    type="text"
+                    placeholder="Priya"
+                    autoComplete="given-name"
+                    maxLength={50}
+                    aria-invalid={errors.first_name ? true : undefined}
+                    aria-describedby={errors.first_name ? "err-first_name" : undefined}
+                    value={form.first_name}
+                    onChange={(e) => update("first_name", e.target.value)}
+                    onBlur={() => onBlurField("first_name")}
+                  />
+                  {errors.first_name && (
+                    <ErrorText id="err-first_name">{errors.first_name}</ErrorText>
+                  )}
+                </div>
+
+                <div className="field" data-invalid={errors.last_name ? "true" : "false"}>
+                  <label htmlFor="last_name">
+                    Last Name <span className="req">*</span>
+                  </label>
+                  <input
+                    id="last_name"
+                    name="last_name"
+                    type="text"
+                    placeholder="Sharma"
+                    autoComplete="family-name"
+                    maxLength={50}
+                    aria-invalid={errors.last_name ? true : undefined}
+                    aria-describedby={errors.last_name ? "err-last_name" : undefined}
+                    value={form.last_name}
+                    onChange={(e) => update("last_name", e.target.value)}
+                    onBlur={() => onBlurField("last_name")}
+                  />
+                  {errors.last_name && (
+                    <ErrorText id="err-last_name">{errors.last_name}</ErrorText>
+                  )}
+                </div>
+
+                <div className="field field-full" data-invalid={errors.email ? "true" : "false"}>
+                  <label htmlFor="email">
+                    <span>
+                      Email Address <span className="req">*</span>
+                    </span>
+                    <span className="field-hint">Call link comes here</span>
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    inputMode="email"
+                    placeholder="priya@example.com"
+                    autoComplete="email"
+                    maxLength={254}
+                    aria-invalid={errors.email ? true : undefined}
+                    aria-describedby={errors.email ? "err-email" : undefined}
+                    value={form.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    onBlur={() => onBlurField("email")}
+                  />
+                  {errors.email && <ErrorText id="err-email">{errors.email}</ErrorText>}
+                </div>
+
+                <div className="field field-full" data-invalid={errors.phone ? "true" : "false"}>
+                  <label htmlFor="phone">
+                    <span>
+                      Phone Number <span className="req">*</span>
+                    </span>
+                    <span className="field-hint">For WhatsApp reminders</span>
+                  </label>
+                  <div className="phone-group">
+                    <CountrySelect
+                      value={form.country_iso}
+                      onChange={onCountryChange}
+                      disabled={submitting}
+                    />
+                    <input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder={phonePlaceholder(form.country_iso)}
+                      autoComplete="tel-national"
+                      aria-invalid={errors.phone ? true : undefined}
+                      aria-describedby={errors.phone ? "err-phone" : undefined}
+                      value={form.phone}
+                      onChange={(e) => {
+                        // Digits only, capped at what the country allows — the
+                        // field simply cannot hold "asdad".
+                        const digits = e.target.value
+                          .replace(/[^0-9]/g, "")
+                          .slice(0, phoneMaxDigits(form.country_iso));
+                        update("phone", digits);
+                      }}
+                      onBlur={() => onBlurField("phone")}
+                    />
+                  </div>
+                  {errors.phone && <ErrorText id="err-phone">{errors.phone}</ErrorText>}
+                </div>
+
+                <div className="field field-full" data-invalid={errors.town ? "true" : "false"}>
+                  <label htmlFor="town">
+                    Town / City <span className="req">*</span>
+                  </label>
+                  <input
+                    id="town"
+                    name="town"
+                    type="text"
+                    placeholder="Mumbai"
+                    autoComplete="address-level2"
+                    maxLength={60}
+                    aria-invalid={errors.town ? true : undefined}
+                    aria-describedby={errors.town ? "err-town" : undefined}
+                    value={form.town}
+                    onChange={(e) => update("town", e.target.value)}
+                    onBlur={() => onBlurField("town")}
+                  />
+                  {errors.town && <ErrorText id="err-town">{errors.town}</ErrorText>}
+                </div>
+              </div>
+
+              <ul className="trust-mini-row" aria-label="Security badges">
+                <li>
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="4" y="10" width="16" height="11" rx="2" />
+                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                  </svg>
+                  256-bit SSL
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="m8.5 12 2.5 2.5 4.5-5" />
+                  </svg>
+                  PCI Compliant
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="m8.5 12 2.5 2.5 4.5-5" />
+                  </svg>
+                  Razorpay Verified
+                </li>
+              </ul>
+
+              {error && (
+                <div className="checkout-error" role="alert">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7.5v5M12 16.2v.2" />
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+            </form>
+          </section>
+
+          <p className="checkout-finetext">
+            By completing this booking you agree to our{" "}
+            <a href="/terms" className="finetext-link">Terms</a>,{" "}
+            <a href="/privacy" className="finetext-link">Privacy Policy</a> &amp;{" "}
+            <a href="/refund" className="finetext-link">Refund Policy</a>.
+            <br />
+            We never share your details. Your call slot is confirmed only after
+            payment.
+          </p>
+
+          <div
+            id="consent-box"
+            className="consent-box"
+            data-error={consentError && !consent ? "true" : "false"}
+          >
+            <label className="consent-label">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => {
+                  setConsent(e.target.checked);
+                  if (e.target.checked) setConsentError(false);
+                }}
+                aria-describedby={
+                  consentError && !consent ? "consent-error" : undefined
+                }
+              />
+              <span>
+                I understand that after payment, I&apos;ll wait up to{" "}
+                <strong>10 seconds</strong> for the booking page to open, then
+                select my preferred date and time to book my call.
+              </span>
+            </label>
+            {consentError && !consent && (
+              <p id="consent-error" className="consent-error" role="alert">
+                Please tick this box to continue.
               </p>
             )}
           </div>
 
-          <ul className="trust-mini-row" aria-label="Security badges">
-            <li>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="4" y="10" width="16" height="11" rx="2" />
-                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-              </svg>
-              SSL Secure
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6l-8-3Z" />
-              </svg>
-              Verified
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m5 12 5 5L20 7" />
-              </svg>
-              Protected
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 7v5l3 2" />
-              </svg>
-              Instant
-            </li>
-          </ul>
-
-          {/* Accepted payment methods — official brand logos */}
-          <div className="pay-methods" aria-label="Accepted payment methods">
-            <span className="pay-methods-label">Accepted Payment Methods</span>
-            <ul className="pay-methods-list">
-              <li className="pm"><img src="/assets/payment/upi.svg" alt="UPI" loading="lazy" /></li>
-              <li className="pm"><img src="/assets/payment/visa.svg" alt="Visa" loading="lazy" /></li>
-              <li className="pm"><img src="/assets/payment/mastercard.svg" alt="Mastercard" loading="lazy" /></li>
-              <li className="pm"><img src="/assets/payment/rupay.svg" alt="RuPay" loading="lazy" /></li>
-              <li className="pm"><img src="/assets/payment/amex.svg" alt="American Express" loading="lazy" /></li>
-              <li className="pm"><img src="/assets/payment/netbanking.svg" alt="Net Banking" loading="lazy" /></li>
-            </ul>
-          </div>
-
-          {error && <div className="checkout-error" role="alert">{error}</div>}
-        </form>
-      </section>
-
-      {/* === Step 2 — Order Summary (accordion: collapsed on mobile, open on desktop) === */}
-      <section className="checkout-card order-card">
-        <button
-          type="button"
-          className="order-acc-toggle"
-          aria-expanded={summaryOpen}
-          aria-controls="order-acc-body"
-          data-open={summaryOpen ? "true" : "false"}
-          onClick={() => setSummaryOpen((o) => !o)}
-        >
-          <span className="step-head order-acc-head">
-            <span className="step-num">2</span>
-            <span className="step-title">Order Summary</span>
-          </span>
-          <span className="order-acc-extra" aria-hidden="true">
-            <span className="order-acc-total">{discountedLabel}</span>
-            <svg className="order-acc-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </span>
-        </button>
-
-        <div
-          id="order-acc-body"
-          className="order-acc-body"
-          data-open={summaryOpen ? "true" : "false"}
-        >
-          <div className="order-acc-inner">
-            <div className="order-row">
-              <div className="order-line">
-                <h4 className="order-name">1:1 Breakthrough Call</h4>
-                <p className="order-meta">60 minutes · No prep · One conversation</p>
-              </div>
-              <div className="order-price">
-                <span className="strike">₹1,499</span>
-                <span className="now">{discountedLabel}</span>
-              </div>
-            </div>
-
-            {coupon && (
-              <div className="order-discount-row">
-                <span className="order-discount-tag">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M9 5H7a2 2 0 0 0-2 2v2a2 2 0 0 1 0 4v2a2 2 0 0 0 2 2h2" />
-                    <path d="M15 5h2a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2h-2" />
-                    <path d="M9 5v14" strokeDasharray="2 3" />
-                  </svg>
-                  Coupon {coupon.code}
-                </span>
-                <span className="order-discount-amt">
-                  −{formatINR(amountPaise - discountedPaise)}
-                </span>
-              </div>
-            )}
-
-            <div className="order-total">
-              <span className="lbl">Total Due Today</span>
-              <span className="amt">{discountedLabel}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Sticky pay bar — fixed to the viewport bottom, triggers onPay */}
-      <aside className="pay-bar" aria-label="Payment bar">
-        <div className="pay-bar-inner">
-          <p className="pay-guarantee">
-            <span className="seal" aria-hidden="true"></span>
-            100% money-back guarantee if the call doesn't deliver value.
-          </p>
+          {/* Desktop pay button — on mobile the sticky bar below carries it. */}
           <button
             type="button"
-            className="pay-btn"
+            className="pay-btn pay-btn-inline"
             onClick={() => onPay()}
             disabled={submitting}
           >
-            {submitting ? (
-              <>Processing&hellip;</>
-            ) : isFree ? (
-              <>
-                Confirm My Booking · Free
-                <span className="ar" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M13 6l6 6-6 6" />
-                  </svg>
-                </span>
-              </>
-            ) : (
-              <>
-                Pay Now · {discountedLabel}
-                <span className="ar" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M13 6l6 6-6 6" />
-                  </svg>
-                </span>
-              </>
-            )}
+            {payLabel}
+            {!submitting && payArrow}
           </button>
         </div>
-      </aside>
-    </div>
+      </div>
+
+      {/* ==========================================================
+          STICKY MOBILE PAY BAR
+          ========================================================== */}
+      <div className="pay-bar" role="region" aria-label="Payment">
+        <div className="pay-bar-total">
+          <span className="pbt-label">Total Due Today</span>
+          <span className="pbt-amt">
+            <span className="pbt-strike">{mrpLabel}</span>
+            {priceLabel}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="pay-btn pay-btn-sticky"
+          onClick={() => onPay()}
+          disabled={submitting}
+        >
+          {submitting ? "Processing…" : `Pay ${priceLabel} and Book My Call`}
+          {!submitting && payArrow}
+        </button>
+      </div>
+
+      {/* Full-screen hold while the signature is verified and the webhook
+          fires. Makes the 10-second promise visible so nobody closes the tab. */}
+      {redirecting && (
+        <div className="redirect-overlay" role="status" aria-live="polite">
+          <div className="redirect-card">
+            <span className="redirect-spinner" aria-hidden="true" />
+            <h3>Payment received</h3>
+            <p>
+              Taking you to the calendar now. Please don&apos;t close or refresh
+              this tab — this can take up to 10 seconds.
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
