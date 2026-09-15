@@ -528,3 +528,103 @@
   .bookcall-card { padding: 26px 18px 22px; }
   .progress-nav .rail { width: 36px; }
 }
+
+/* ── "Preferred slot not available?" — post-payment help box ── */
+.slot-help {
+  margin-top: 44px;
+  text-align: center;
+  border: 1px solid var(--border-strong, #cbd5e1);
+  border-radius: 22px;
+  padding: 34px 24px 30px;
+  background:
+    radial-gradient(130% 130% at 50% 0%, rgba(220, 38, 38, 0.05), rgba(255, 255, 255, 0) 62%),
+    #ffffff;
+  box-shadow: 0 12px 34px rgba(17, 24, 39, 0.06);
+}
+.slot-help-pill {
+  justify-content: center;
+  margin: 0 auto;
+}
+.slot-help-h {
+  margin-top: 18px;
+  font-size: clamp(23px, 3.3vw, 33px);
+}
+.slot-help-p {
+  max-width: 620px;
+  margin: 14px auto 0;
+  font-family: "DM Sans", sans-serif;
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--ink-soft, #475569);
+}
+.slot-help-p strong {
+  color: var(--ink, #111827);
+  font-weight: 700;
+}
+.slot-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 26px;
+}
+.slot-help-wa,
+.slot-help-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 26px;
+  border-radius: 999px;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.slot-help-wa {
+  background: #25d366;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
+}
+.slot-help-wa:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(37, 211, 102, 0.38);
+}
+.slot-help-email {
+  background: #ffffff;
+  color: var(--ink, #111827);
+  border: 1.5px solid var(--border-strong, #cbd5e1);
+}
+.slot-help-email:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand, #dc2626);
+  color: var(--brand, #dc2626);
+}
+.slot-help-contact {
+  margin-top: 20px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.03em;
+  color: var(--muted, #64748b);
+}
+.slot-help-contact a {
+  color: var(--muted, #64748b);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.slot-help-contact a:hover {
+  color: var(--brand, #dc2626);
+}
+.slot-help-contact .sep {
+  margin: 0 10px;
+  color: rgba(220, 38, 38, 0.5);
+}
+@media (max-width: 520px) {
+  .slot-help-actions {
+    flex-direction: column;
+  }
+  .slot-help-wa,
+  .slot-help-email {
+    justify-content: center;
+  }
+}
