@@ -12,49 +12,18 @@ import { fireAddToCartOnce } from "../_lib/meta-client";
 import { COUNTRIES, flagEmoji } from "../_lib/country";
 import ThemedSelect, { type ThemedOption } from "./ThemedSelect";
 
-// Option lists for the themed dropdowns (with flag icons).
-const COUNTRY_OPTIONS: ThemedOption[] = COUNTRIES.map((c) => ({
+// Country dial-code options (with flag icons). UK first — this funnel runs on
+// UK-targeted ads — then the rest alphabetically, so a +44 visitor never has to
+// scroll to find their own code.
+const UK_ISO = "GB";
+const COUNTRY_OPTIONS: ThemedOption[] = [
+  ...COUNTRIES.filter((c) => c.iso === UK_ISO),
+  ...COUNTRIES.filter((c) => c.iso !== UK_ISO),
+].map((c) => ({
   value: c.iso,
   label: `${flagEmoji(c.iso)}  ${c.name} · ${c.dial}`,
   short: `${flagEmoji(c.iso)} ${c.dial}`,
 }));
-
-// Step 4 — role / profile (dropdown)
-const PROFILE_OPTIONS: ThemedOption[] = [
-  "Business Owner / Entrepreneur",
-  "CEO / Founder",
-  "Senior Corporate Professional",
-  "Doctor / Lawyer / Consultant",
-  "Other",
-].map((v) => ({ value: v, label: v }));
-
-// Step 5 — weight to lose (dropdown, unchanged)
-const WEIGHT_OPTIONS: ThemedOption[] = [
-  { value: "Less than 10 kg", label: "Less than 10 kg" },
-  { value: "10–20 kg", label: "10–20 kg" },
-  { value: "20–40 kg", label: "20–40 kg" },
-  { value: "40+ kg", label: "40+ kg" },
-];
-
-// Step 6 — current annual income (single-select cards)
-const INCOME_OPTIONS = [
-  "Below ₹15 Lakhs",
-  "₹15–25 Lakhs",
-  "₹25–50 Lakhs",
-  "₹50 Lakhs – ₹1 Crore",
-  "Above ₹1 Crore",
-];
-
-// Step 7 — investment intent (single-select cards). The final option routes the
-// visitor to /disqualified instead of the booking page.
-const INVEST_DECLINE =
-  "Really interested, but not ready to invest in my health & fitness";
-const INVESTMENT_OPTIONS = [
-  "₹7,000–₹10,000 per month",
-  "₹10,000–₹15,000 per month",
-  "₹15,000+ per month",
-  INVEST_DECLINE,
-];
 
 type FormState = {
   first_name: string;
@@ -62,10 +31,7 @@ type FormState = {
   email: string;
   phone: string;
   country_iso: string;
-  profile: string;
-  weight_to_lose: string;
-  annual_income: string;
-  investment_level: string;
+  city: string;
 };
 
 const initialState: FormState = {
@@ -73,67 +39,56 @@ const initialState: FormState = {
   last_name: "",
   email: "",
   phone: "",
-  country_iso: "IN",
-  profile: "",
-  weight_to_lose: "",
-  annual_income: "",
-  investment_level: "",
+  country_iso: UK_ISO,
+  city: "",
 };
-
-const TOTAL_STEPS = 7;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE_RE = /^[0-9]{6,15}$/;
 
-// Validate only the fields that belong to the given step. Returns an error
-// string (shown under the step) or null when the step is complete & valid.
-function validateStep(step: number, form: FormState): string | null {
-  switch (step) {
-    case 1:
-      if (!form.first_name.trim()) return "Please enter your first name.";
-      if (!form.last_name.trim()) return "Please enter your last name.";
-      return null;
-    case 2:
-      if (!form.email.trim()) return "Please enter your email address.";
-      if (!EMAIL_RE.test(form.email.trim())) return "Enter a valid email address.";
-      return null;
-    case 3:
-      if (!form.country_iso) return "Select your country.";
-      if (!form.phone.trim()) return "Please enter your phone number.";
-      if (!PHONE_RE.test(form.phone.trim()))
-        return "Enter a valid phone number (digits only).";
-      return null;
-    case 4:
-      if (!form.profile) return "Please select an option.";
-      return null;
-    case 5:
-      if (!form.weight_to_lose) return "Please select an option.";
-      return null;
-    case 6:
-      if (!form.annual_income) return "Please select an option.";
-      return null;
-    case 7:
-      if (!form.investment_level) return "Please select an option.";
-      return null;
-    default:
-      return null;
-  }
+/**
+ * Validate the whole form at once (single-screen — there are no steps to gate).
+ * Returns the first problem as `{ field, message }` so the offending input can
+ * be highlighted and focused, or null when everything is good.
+ */
+function validate(form: FormState): { field: keyof FormState; message: string } | null {
+  if (!form.first_name.trim())
+    return { field: "first_name", message: "Please enter your first name." };
+  if (!form.last_name.trim())
+    return { field: "last_name", message: "Please enter your last name." };
+  if (!form.email.trim())
+    return { field: "email", message: "Please enter your email address." };
+  if (!EMAIL_RE.test(form.email.trim()))
+    return { field: "email", message: "Enter a valid email address." };
+  if (!form.country_iso)
+    return { field: "country_iso", message: "Select your country." };
+  if (!form.phone.trim())
+    return { field: "phone", message: "Please enter your phone number." };
+  if (!PHONE_RE.test(form.phone.trim()))
+    return { field: "phone", message: "Enter a valid phone number (digits only)." };
+  if (!form.city.trim())
+    return { field: "city", message: "Please enter your town or city." };
+  return null;
 }
 
 /**
- * Free-funnel lead capture — a 7-step wizard. Mounted once in the landing page;
- * any element with a `data-lead` attribute (the CTAs) opens it via click
- * delegation. On the final step the lead is written to the CRM webhook (via
- * /api/lead) and the visitor is forwarded to the booking page — or, if they
- * pick "not ready to invest", to /disqualified.
+ * Free-funnel registration — a single-screen modal. Mounted once on the landing
+ * page; any element with a `data-lead` attribute (the CTAs) opens it via click
+ * delegation.
+ *
+ * On submit the lead is written to the CRM webhook (via /api/lead) along with
+ * its UTM / Meta attribution, then the visitor is forwarded to /book-a-call to
+ * pick a Calendly slot, and on to /thank-you once they book.
+ *
+ * There is no payment step, no qualification questions and no disqualify branch
+ * anywhere in this funnel — every completed registration is a lead.
  */
 export default function LeadModal() {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(initialState);
   const [error, setError] = useState<string | null>(null);
+  const [errorField, setErrorField] = useState<keyof FormState | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
   // Attribution kept in state so the UTMs render as hidden <input>s in the form.
   const [attribution, setAttribution] = useState<Attribution>({});
@@ -167,12 +122,12 @@ export default function LeadModal() {
       if (trigger) {
         e.preventDefault();
         // Any landing-page CTA counts as top-of-funnel intent. Fire GA4
-        // add_to_cart + Meta standard AddToCart (CAPI) — each once per browser,
+        // add_to_cart + the Meta intent event (CAPI) — each once per browser,
         // host-gated, non-blocking.
         trackGa4EventOnce("add_to_cart");
         fireAddToCartOnce();
-        setStep(1);
         setError(null);
+        setErrorField(null);
         setOpen(true);
       }
     }
@@ -195,81 +150,67 @@ export default function LeadModal() {
     };
   }, [open]);
 
-  // Focus the first text input each time a text step is shown.
+  // Focus the first field when the modal opens.
   useEffect(() => {
     if (!open) return;
-    if (step === 1 || step === 2 || step === 3) {
-      requestAnimationFrame(() => firstInputRef.current?.focus());
-    }
-  }, [open, step]);
+    requestAnimationFrame(() => firstInputRef.current?.focus());
+  }, [open]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
-    if (error) setError(null);
-  }
-
-  function goBack() {
-    setError(null);
-    setStep((s) => Math.max(1, s - 1));
-  }
-
-  // Advance to the next step, or submit if we're on the last one.
-  function advance(nextForm: FormState) {
-    if (step < TOTAL_STEPS) {
-      setStep((s) => s + 1);
-    } else {
-      void submitLead(nextForm);
+    if (error) {
+      setError(null);
+      setErrorField(null);
     }
   }
 
-  // Used by the single-select steps (dropdowns + radio cards): set the value and
-  // auto-advance after a beat so the choice is visible — no Continue click needed.
-  function selectAndAdvance<K extends keyof FormState>(key: K, value: FormState[K]) {
-    const next = { ...form, [key]: value };
-    setForm(next);
-    setError(null);
-    window.setTimeout(() => advance(next), 240);
-  }
+  async function submitLead(e: FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
 
-  async function submitLead(finalForm: FormState = form) {
-    // GA4 registration_complete = the lead form was completed and submitted.
-    // Once per browser, non-blocking.
+    const problem = validate(form);
+    if (problem) {
+      setError(problem.message);
+      setErrorField(problem.field);
+      // Put the cursor on the field that failed.
+      document
+        .querySelector<HTMLInputElement>(`[data-field="${problem.field}"] input`)
+        ?.focus();
+      return;
+    }
+
+    // GA4 registration_complete = the form was completed and submitted.
     trackGa4EventOnce("registration_complete");
     setSubmitting(true);
     setError(null);
+    setErrorField(null);
+
     try {
-      const dial =
-        COUNTRIES.find((c) => c.iso === finalForm.country_iso)?.dial || "+91";
-      const disqualified = finalForm.investment_level === INVEST_DECLINE;
+      const dial = COUNTRIES.find((c) => c.iso === form.country_iso)?.dial || "+44";
 
       // Enrich the Meta pixel with hashed identity (advanced matching). This
-      // also writes the tgo_mam cookie the Schedule CAPI reads later.
+      // also writes the tgo_mam cookie later events read.
       void setMetaAdvancedMatching({
-        email: finalForm.email,
-        phone: `${dial}${finalForm.phone}`,
-        firstName: finalForm.first_name,
-        lastName: finalForm.last_name,
-        country: finalForm.country_iso,
+        email: form.email,
+        phone: `${dial}${form.phone}`,
+        firstName: form.first_name,
+        lastName: form.last_name,
+        city: form.city,
+        country: form.country_iso,
       });
 
-      // EVERY completed submission posts to /api/lead, which writes the webhook
-      // row and fires the CAPI events. This used to sit behind a once-per-browser
-      // localStorage flag, which meant a second lead from the same device — a
-      // different person on a shared phone, or the same visitor re-applying with
-      // new answers — silently skipped the webhook entirely.
-      //
-      // Duplicate protection belongs server-side and already exists there: the
-      // Meta event_id is stable per email (reg_/qual_ + sha256(email)), so Meta's
-      // 48h window collapses a true re-submit by the SAME person while a
-      // different email is correctly counted as a new lead. A double-click can't
-      // reach here either — onSubmit returns early while `submitting` is true.
+      // Every completed submission posts to /api/lead, which writes the webhook
+      // row (Pabbly) and fires the CAPI events. Duplicate protection lives
+      // server-side: the Meta event_id is stable per email, so Meta's 48h window
+      // collapses a true re-submit by the same person while a different email is
+      // correctly counted as a new lead. A double-click can't reach here either —
+      // this returns early while `submitting` is true.
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...finalForm,
+          ...form,
           country_code: dial,
-          disqualified,
           attribution,
           eventSourceUrl:
             typeof window !== "undefined" ? window.location.href : undefined,
@@ -279,6 +220,7 @@ export default function LeadModal() {
       if (!res.ok || !data.ok) {
         throw new Error(data?.error || "Something went wrong. Please try again.");
       }
+
       const leadId: string = data.leadId || "";
       try {
         localStorage.setItem("tgo_lead_id", leadId);
@@ -287,7 +229,7 @@ export default function LeadModal() {
       }
 
       // Forward all landing-page URL params (+ any stored UTMs) so attribution
-      // rides through the whole funnel.
+      // rides through to the booking page and on into /thank-you.
       const forward = new URLSearchParams(
         typeof window !== "undefined" ? window.location.search : ""
       );
@@ -295,52 +237,27 @@ export default function LeadModal() {
         const v = attribution[k];
         if (v && !forward.get(k)) forward.set(k, v);
       }
-      if (disqualified) {
-        // Carry the answers through so the disqualified page can show them back
-        // and pinpoint the investment question as the reason.
-        forward.set("pr", finalForm.profile);
-        forward.set("wt", finalForm.weight_to_lose);
-        forward.set("inc", finalForm.annual_income);
-        forward.set("inv", finalForm.investment_level);
-        window.location.href = `/disqualified?${forward.toString()}`;
-      } else {
-        forward.set("lead", leadId);
-        window.location.href = `/book-a-call?${forward.toString()}`;
-      }
+      forward.set("lead", leadId);
+      forward.set("fn", form.first_name.trim());
+      // Handed to Calendly as prefill so the visitor doesn't retype what they
+      // just gave us — retyping on the booking step is where bookings get lost.
+      forward.set("nm", `${form.first_name} ${form.last_name}`.trim());
+      forward.set("em", form.email.trim());
+      window.location.href = `/book-a-call?${forward.toString()}`;
     } catch (err) {
       setSubmitting(false);
       setError(err instanceof Error ? err.message : "Something went wrong.");
     }
   }
 
-  // Continue / Submit handler for the form (Enter key or button click).
-  function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (submitting) return;
-    const stepError = validateStep(step, form);
-    if (stepError) {
-      setError(stepError);
-      return;
-    }
-    setError(null);
-    if (step < TOTAL_STEPS) {
-      setStep((s) => s + 1);
-    } else {
-      void submitLead();
-    }
-  }
-
-  const progressPct = Math.round((step / TOTAL_STEPS) * 100);
-  const isLast = step === TOTAL_STEPS;
-
   return (
     <div className={`lead-modal${open ? " open" : ""}`} aria-hidden={!open}>
       <div className="lead-modal-backdrop" onClick={() => setOpen(false)} />
       <div
-        className="lead-modal-card lead-wizard"
+        className="lead-modal-card"
         role="dialog"
         aria-modal="true"
-        aria-label="Book your free assessment call"
+        aria-label="Register for your free consultation"
       >
         <button
           type="button"
@@ -351,35 +268,23 @@ export default function LeadModal() {
           &times;
         </button>
 
-        {/* Progress + meta */}
-        <div className="wiz-progress" aria-hidden="true">
-          <span className="wiz-progress-bar" style={{ width: `${progressPct}%` }} />
-        </div>
-        <div className="wiz-meta">
-          <span className="wiz-count">
-            Question <strong>{step}</strong> of {TOTAL_STEPS}
+        <div className="lead-modal-head">
+          <span className="lead-eyebrow">
+            <span className="dot" aria-hidden="true">
+              ●
+            </span>
+            100% Free · No Card Needed
           </span>
-          <span className="wiz-badge">
-            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path
-                d="M10 2l6 2.5v4.2c0 4-2.7 7.3-6 8.3-3.3-1-6-4.3-6-8.3V4.5L10 2z"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M7.2 10.2l2 2 3.6-3.8"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Free · No card needed
-          </span>
+          <h2 className="lead-title">
+            Let&apos;s get you <span className="gold">started.</span>
+          </h2>
+          <p className="lead-sub">
+            Fill this in and we&apos;ll continue on WhatsApp — it takes less than a
+            minute.
+          </p>
         </div>
 
-        <form ref={formRef} className="lead-form wiz-form" onSubmit={onSubmit} noValidate>
+        <form className="lead-form" onSubmit={submitLead} noValidate>
           {/* UTM / click-id attribution — hidden fields carried with the lead. */}
           {UTM_KEYS.map((k) => (
             <input key={k} type="hidden" name={k} value={attribution[k] || ""} readOnly />
@@ -387,187 +292,135 @@ export default function LeadModal() {
           <input type="hidden" name="landing_url" value={attribution.landing_url || ""} readOnly />
           <input type="hidden" name="referrer" value={attribution.referrer || ""} readOnly />
 
-          {/* STEP 1 — name */}
-          {step === 1 && (
-            <div className="wiz-step">
-              <h2 className="wiz-q">What&apos;s your name?</h2>
-              <div className="wiz-grid-2">
-                <div className="lead-field" data-field="first_name">
-                  <label htmlFor="lead_first">First Name</label>
-                  <input
-                    ref={firstInputRef}
-                    id="lead_first"
-                    type="text"
-                    placeholder="First name"
-                    autoComplete="given-name"
-                    value={form.first_name}
-                    onChange={(e) => update("first_name", e.target.value)}
-                  />
-                </div>
-                <div className="lead-field" data-field="last_name">
-                  <label htmlFor="lead_last">Last Name</label>
-                  <input
-                    id="lead_last"
-                    type="text"
-                    placeholder="Last name"
-                    autoComplete="family-name"
-                    value={form.last_name}
-                    onChange={(e) => update("last_name", e.target.value)}
-                  />
-                </div>
-              </div>
+          <div className="lead-grid">
+            <div
+              className={`lead-field${errorField === "first_name" ? " has-error" : ""}`}
+              data-field="first_name"
+            >
+              <label htmlFor="lead_first">
+                First Name <span className="req">*</span>
+              </label>
+              <input
+                ref={firstInputRef}
+                id="lead_first"
+                name="first_name"
+                type="text"
+                placeholder="First name"
+                autoComplete="given-name"
+                value={form.first_name}
+                onChange={(e) => update("first_name", e.target.value)}
+              />
             </div>
-          )}
 
-          {/* STEP 2 — email */}
-          {step === 2 && (
-            <div className="wiz-step">
-              <h2 className="wiz-q">What&apos;s your email address?</h2>
-              <div className="lead-field" data-field="email">
-                <label htmlFor="lead_email">Email Address</label>
+            <div
+              className={`lead-field${errorField === "last_name" ? " has-error" : ""}`}
+              data-field="last_name"
+            >
+              <label htmlFor="lead_last">
+                Last Name <span className="req">*</span>
+              </label>
+              <input
+                id="lead_last"
+                name="last_name"
+                type="text"
+                placeholder="Last name"
+                autoComplete="family-name"
+                value={form.last_name}
+                onChange={(e) => update("last_name", e.target.value)}
+              />
+            </div>
+
+            <div
+              className={`lead-field lead-field-full${errorField === "email" ? " has-error" : ""}`}
+              data-field="email"
+            >
+              <label htmlFor="lead_email">
+                Email Address <span className="req">*</span>
+              </label>
+              <input
+                id="lead_email"
+                name="email"
+                type="email"
+                inputMode="email"
+                placeholder="you@email.com"
+                autoComplete="email"
+                value={form.email}
+                onChange={(e) => update("email", e.target.value)}
+              />
+            </div>
+
+            <div
+              className={`lead-field lead-field-full${errorField === "phone" ? " has-error" : ""}`}
+              data-field="phone"
+            >
+              <label htmlFor="lead_phone" className="label-row">
+                <span>
+                  Phone Number <span className="req">*</span>
+                </span>
+                <span className="field-hint">We&apos;ll message you here</span>
+              </label>
+              <div className="lead-phone-group">
+                <ThemedSelect
+                  ariaLabel="Country"
+                  value={form.country_iso}
+                  onChange={(v) => update("country_iso", v)}
+                  options={COUNTRY_OPTIONS}
+                />
                 <input
-                  ref={firstInputRef}
-                  id="lead_email"
-                  type="email"
-                  inputMode="email"
-                  placeholder="you@email.com"
-                  autoComplete="email"
-                  value={form.email}
-                  onChange={(e) => update("email", e.target.value)}
+                  id="lead_phone"
+                  name="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="7911 123456"
+                  autoComplete="tel"
+                  value={form.phone}
+                  onChange={(e) =>
+                    update("phone", e.target.value.replace(/[^0-9]/g, ""))
+                  }
                 />
               </div>
             </div>
-          )}
 
-          {/* STEP 3 — phone */}
-          {step === 3 && (
-            <div className="wiz-step">
-              <h2 className="wiz-q">What&apos;s your phone number?</h2>
-              <div className="lead-field" data-field="phone">
-                <label htmlFor="lead_phone">Phone Number</label>
-                <div className="lead-phone-group">
-                  <ThemedSelect
-                    ariaLabel="Country"
-                    value={form.country_iso}
-                    onChange={(v) => update("country_iso", v)}
-                    options={COUNTRY_OPTIONS}
-                  />
-                  <input
-                    ref={firstInputRef}
-                    id="lead_phone"
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="Phone number"
-                    autoComplete="tel"
-                    value={form.phone}
-                    onChange={(e) => update("phone", e.target.value.replace(/[^0-9]/g, ""))}
-                  />
-                </div>
-              </div>
+            <div
+              className={`lead-field lead-field-full${errorField === "city" ? " has-error" : ""}`}
+              data-field="city"
+            >
+              <label htmlFor="lead_city">
+                Town / City <span className="req">*</span>
+              </label>
+              <input
+                id="lead_city"
+                name="city"
+                type="text"
+                placeholder="London"
+                autoComplete="address-level2"
+                value={form.city}
+                onChange={(e) => update("city", e.target.value)}
+              />
             </div>
-          )}
-
-          {/* STEP 4 — profile / role */}
-          {step === 4 && (
-            <div className="wiz-step">
-              <h2 className="wiz-q">Which best describes you?</h2>
-              <div className="lead-field" data-field="profile">
-                <ThemedSelect
-                  ariaLabel="Which best describes you?"
-                  placeholder="Select an option"
-                  value={form.profile}
-                  onChange={(v) => selectAndAdvance("profile", v)}
-                  options={PROFILE_OPTIONS}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* STEP 5 — weight to lose */}
-          {step === 5 && (
-            <div className="wiz-step">
-              <h2 className="wiz-q">How much weight do you want to lose?</h2>
-              <div className="lead-field" data-field="weight_to_lose">
-                <ThemedSelect
-                  ariaLabel="How much weight do you want to lose?"
-                  placeholder="Select an option"
-                  value={form.weight_to_lose}
-                  onChange={(v) => selectAndAdvance("weight_to_lose", v)}
-                  options={WEIGHT_OPTIONS}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* STEP 6 — annual income (single-select cards) */}
-          {step === 6 && (
-            <div className="wiz-step">
-              <h2 className="wiz-q">What is your current annual income?</h2>
-              <div className="wiz-radios" role="radiogroup" aria-label="Current annual income">
-                {INCOME_OPTIONS.map((opt) => (
-                  <button
-                    type="button"
-                    key={opt}
-                    role="radio"
-                    aria-checked={form.annual_income === opt}
-                    className={`wiz-radio${form.annual_income === opt ? " selected" : ""}`}
-                    onClick={() => selectAndAdvance("annual_income", opt)}
-                  >
-                    <span className="wiz-radio-dot" aria-hidden="true" />
-                    <span className="wiz-radio-label">{opt}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 7 — investment intent (single-select cards) */}
-          {step === 7 && (
-            <div className="wiz-step">
-              <h2 className="wiz-q">
-                With a personalised plan built around your busy schedule, what are you
-                ready to invest each month in your transformation?
-              </h2>
-              <div className="wiz-radios" role="radiogroup" aria-label="Monthly investment">
-                {INVESTMENT_OPTIONS.map((opt) => (
-                  <button
-                    type="button"
-                    key={opt}
-                    role="radio"
-                    aria-checked={form.investment_level === opt}
-                    className={`wiz-radio${form.investment_level === opt ? " selected" : ""}${opt === INVEST_DECLINE ? " wiz-radio-soft" : ""}`}
-                    onClick={() => selectAndAdvance("investment_level", opt)}
-                  >
-                    <span className="wiz-radio-dot" aria-hidden="true" />
-                    <span className="wiz-radio-label">{opt}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {error && <div className="lead-error wiz-error" role="alert">{error}</div>}
-
-          <div className="wiz-nav">
-            {step > 1 ? (
-              <button type="button" className="wiz-back" onClick={goBack} disabled={submitting}>
-                <span className="ar" aria-hidden="true">←</span> Back
-              </button>
-            ) : (
-              <span className="wiz-back-spacer" aria-hidden="true" />
-            )}
-            {/* Text steps show Continue; select/radio steps auto-advance, so the
-                button only appears there to signal the final submit is running. */}
-            {(step <= 3 || submitting) && (
-              <button type="submit" className="lead-submit wiz-next" disabled={submitting}>
-                {submitting ? "Submitting…" : isLast ? "See My Results" : "Continue"}
-                <span className="ar" aria-hidden="true">→</span>
-              </button>
-            )}
           </div>
 
-          <p className="lead-fine wiz-fine">
-            Your details are used to run the call and send reminders. Nothing is charged at any point.
+          {error && (
+            <div className="lead-error" role="alert">
+              {error}
+            </div>
+          )}
+
+          <button type="submit" className="lead-submit" disabled={submitting}>
+            {submitting ? "Just a moment…" : "Continue on WhatsApp"}
+            <span className="ar" aria-hidden="true">
+              →
+            </span>
+          </button>
+
+          <p className="lead-fine lead-consent">
+            By continuing you agree to be contacted by Coach Mawra on WhatsApp and
+            email about your free consultation. No payment is taken at any point, and you can
+            ask us to stop at any time. See our{" "}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer">
+              Privacy Policy
+            </a>
+            .
           </p>
         </form>
       </div>

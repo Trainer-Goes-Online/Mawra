@@ -1,6 +1,6 @@
 /**
  * Shared legal/compliance disclaimer used in the footer of every page except
- * the checkout payment page. Styling (.foot-disclaimer / .foot-copy) lives in
+ * the WhatsApp hand-off page. Styling (.foot-disclaimer / .foot-copy) lives in
  * funnel.css, which the root layout loads globally on every route.
  */
 export default function FooterDisclaimer() {

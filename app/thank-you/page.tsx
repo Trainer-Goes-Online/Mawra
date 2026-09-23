@@ -6,7 +6,9 @@ import MamReapply from "../_components/MamReapply";
 export const metadata: Metadata = {
   title: "Booking Confirmed · Coach Mawra",
   description:
-    "Your free assessment call with Coach Mawra is confirmed. Check your email for the call link and details.",
+    "Your free consultation with Coach Mawra is confirmed. Check your email for the call link and details.",
+  // Final funnel page — reachable only after booking, so keep it out of search.
+  robots: { index: false, follow: false },
 };
 
 export default function ThankYouPage() {
@@ -25,7 +27,7 @@ export default function ThankYouPage() {
                 Booking <span className="accent">Confirmed.</span>
               </h1>
               <p className="sec-lede" style={{ fontFamily: "'DM Sans', sans-serif", fontStyle: "italic", marginTop: 10 }}>
-                Your free assessment call with Coach Mawra is locked in.
+                Your free consultation with Coach Mawra is locked in.
               </p>
               <p style={{ maxWidth: 560, margin: "18px auto 0", fontFamily: "'DM Sans', sans-serif", fontSize: 15.5, lineHeight: 1.7, color: "rgba(71,85,105,0.82)", textAlign: "center" }}>
                 The Zoom link and call details are on their way to your inbox — check your
@@ -56,8 +58,8 @@ export default function ThankYouPage() {
               <div className="numbox">
                 <div className="numbox-num">3</div>
                 <div className="numbox-content">
-                  <h3 className="numbox-title">Leave With A Plan</h3>
-                  <p className="numbox-body">You&apos;ll walk away with clarity on your biggest roadblocks and a personalised roadmap to finally lose the weight and keep it off.</p>
+                  <h3 className="numbox-title">Leave With Real Clarity</h3>
+                  <p className="numbox-body">You&apos;ll walk away knowing exactly what has been holding you back, and what would need to change to finally lose the weight and keep it off.</p>
                 </div>
               </div>
             </div>
@@ -71,7 +73,7 @@ export default function ThankYouPage() {
               </p>
             </div>
 
-            <div className="hero-cred-pills reveal" style={{ justifyContent: "center", marginTop: 52 }}>
+            <div className="hero-cred-pills cred-row-standalone reveal" style={{ justifyContent: "center" }}>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>TEDx Speaker</span>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>500+ Transformations</span>
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>60+ Kilos Lost and Maintained</span>

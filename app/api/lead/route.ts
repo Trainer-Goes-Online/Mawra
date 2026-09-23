@@ -3,11 +3,17 @@ import { UTM_KEYS, type Attribution } from "@/app/_lib/attribution";
 import { sha256, toOrigin, sendMetaLeadCapi, sendMetaQualifiedLeadCapi } from "@/app/_lib/meta-capi";
 import { dialCodeToCountryIso } from "@/app/_lib/country";
 
-// Node runtime (uses node:crypto via sha256). Free funnel: this endpoint takes
-// the popup lead form, writes one row to the CRM Google Sheet (through a webhook
-// — Pabbly Connect OR a Google Apps Script Web App), and returns a lead id so
-// the client can redirect to the Calendly booking page.
+// Node runtime (uses node:crypto via sha256). Free UK funnel: this endpoint
+// takes the registration modal, writes one row to the CRM Google Sheet (through
+// a webhook — Pabbly Connect OR a Google Apps Script Web App), and returns a
+// lead id so the client can redirect to the WhatsApp hand-off page (/wa-dm).
+//
+// There is no payment and no qualification step in this funnel — every valid
+// submission is a lead.
 export const runtime = "nodejs";
+
+// UK-targeted ads, so an unspecified dial code defaults to the UK.
+const DEFAULT_DIAL = "+44";
 
 type Body = {
   first_name?: string;
@@ -15,11 +21,7 @@ type Body = {
   email?: string;
   phone?: string;
   country_code?: string;
-  profile?: string;
-  weight_to_lose?: string;
-  annual_income?: string;
-  investment_level?: string;
-  disqualified?: boolean;
+  city?: string;
   attribution?: Attribution;
   eventSourceUrl?: string;
 };
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as Body;
 
-    const required = ["first_name", "last_name", "email", "phone"] as const;
+    const required = ["first_name", "last_name", "email", "phone", "city"] as const;
     for (const field of required) {
       if (!body[field] || typeof body[field] !== "string") {
         return NextResponse.json(
@@ -80,11 +82,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const phone = `${body.country_code || "+91"}${phoneDigits}`;
-    const countryIso = dialCodeToCountryIso(body.country_code); // "+91" -> "IN"
+    const phone = `${body.country_code || DEFAULT_DIAL}${phoneDigits}`;
+    const countryIso = dialCodeToCountryIso(body.country_code || DEFAULT_DIAL); // "+44" -> "GB"
+    const city = (body.city || "").trim();
     const externalId = sha256(email.toLowerCase());
 
-    // Meta matching identifiers (read from cookies / headers, like the verify route).
+    // Meta matching identifiers (read from cookies / headers).
     const fbc = req.cookies.get("_fbc")?.value || "";
     const fbp = req.cookies.get("_fbp")?.value || "";
     const clientIp =
@@ -98,32 +101,25 @@ export async function POST(req: NextRequest) {
     const originUrl = toOrigin(body.eventSourceUrl);
 
     // One row per lead. Stable keys so the Sheet column mapping never shifts;
-    // CRM-lifecycle fields (attended, qualified, sale_closed, …) are reserved as
+    // CRM-lifecycle fields (contacted, replied, sale_closed, …) are reserved as
     // empty placeholders and filled later by downstream automation.
     const payload: Record<string, unknown> = {
       event: "lead_submitted",
-      product: "Free Assessment Call",
+      product: "Free Consultation · UK",
       lead_id: leadId,
       created_at: new Date().toISOString(),
       first_name: body.first_name,
       last_name: body.last_name,
       email,
       phone,
-      city: "",
+      city,
       country_code: countryIso,
-      profile: body.profile || "",
-      weight_to_lose: body.weight_to_lose || "",
-      annual_income: body.annual_income || "",
-      investment_level: body.investment_level || "",
-      disqualified: body.disqualified ? "true" : "false",
-      qualified: body.disqualified ? "false" : "true",
       fbc,
       fbp,
       client_ip_address: clientIp,
       client_user_agent: clientUserAgent,
       external_id: externalId,
       event_source_url: originUrl,
-      amount: 0,
       is_test: "false",
       full_name: `${body.first_name} ${body.last_name}`.trim(),
       landing_url: attribution.landing_url || "",
@@ -134,52 +130,36 @@ export async function POST(req: NextRequest) {
       payload[k] = attribution[k] || "";
     }
 
-    console.log(
-      `[lead] ${leadId} received — disqualified=${body.disqualified ? "true" : "false"}. Pabbly payload:`,
-      JSON.stringify(payload)
-    );
+    console.log(`[lead] ${leadId} received. Pabbly payload:`, JSON.stringify(payload));
     await sendToSheet(payload);
 
-    // Fire the free-registration Meta CAPI events (standard + custom).
-    // Awaited (so it completes in serverless) but self-contained — it logs and
-    // swallows its own errors, so a CAPI failure never fails the lead.
-    // event_id is stable per email (not the per-submit lead_id) so Meta's 48h
-    // dedup backs up the client's once-per-browser flag if the form re-submits.
-    await sendMetaLeadCapi({
-      eventId: `reg_${externalId}`,
+    // Shared Meta identity for both CAPI events below.
+    const identity = {
       email,
       phone,
       firstName: body.first_name!,
       lastName: body.last_name!,
-      city: "",
+      city,
       countryCode: countryIso,
       eventSourceUrl: originUrl,
       fbc,
       fbp,
       clientIp,
       clientUserAgent,
-    });
+    };
 
-    // QualifiedLead custom event — ONLY when the visitor qualifies (picked one
-    // of the priced investment tiers, not the decline option). Same full hashed
-    // identity → highest EMQ. event_id stable per email for Meta 48h dedup.
-    if (!body.disqualified) {
-      console.log(`[lead] ${leadId} qualified — firing QualifiedLead`);
-      await sendMetaQualifiedLeadCapi({
-        eventId: `qual_${externalId}`,
-        email,
-        phone,
-        firstName: body.first_name!,
-        lastName: body.last_name!,
-        city: "",
-        countryCode: countryIso,
-        eventSourceUrl: originUrl,
-        fbc,
-        fbp,
-        clientIp,
-        clientUserAgent,
-      });
-    }
+    // Fire the free-registration Meta CAPI events (standard + custom).
+    // Awaited (so they complete in serverless) but self-contained — each logs
+    // and swallows its own errors, so a CAPI failure never fails the lead.
+    // event_id is stable per email (not the per-submit lead_id) so Meta's 48h
+    // dedup collapses a genuine re-submit by the same person.
+    await sendMetaLeadCapi({ eventId: `reg_${externalId}`, ...identity });
+
+    // QualifiedLead used to be gated on the old investment question. That
+    // qualification step is gone with the paid funnel, so every registration now
+    // counts — the event keeps firing so campaigns already optimising against it
+    // don't go blind.
+    await sendMetaQualifiedLeadCapi({ eventId: `qual_${externalId}`, ...identity });
 
     return NextResponse.json({ ok: true, leadId });
   } catch (err: unknown) {

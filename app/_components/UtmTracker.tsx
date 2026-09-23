@@ -71,7 +71,7 @@ export default function UtmTracker() {
       if (hasAnyUtm) {
         document
           .querySelectorAll<HTMLAnchorElement>(
-            'a[href^="/checkout"], a[href^="/book-a-call"]'
+            'a[href^="/wa-dm"], a[href^="/book-a-call"]'
           )
           .forEach((a) => {
             const href = a.getAttribute("href");

@@ -6190,3 +6190,466 @@ a.vsl-box.hero-portrait { cursor: pointer; display: block; text-decoration: none
   .hero-vsl-unmute { animation: none !important; }
   .hvp-ring { opacity: .45; }
 }
+
+/* ============================================================
+   UK FREE FUNNEL — registration modal + WhatsApp hand-off
+   ============================================================ */
+
+/* Label rows that carry a right-aligned hint ("We'll message you here").
+   Previously lived in checkout.css, which went with the paid funnel.
+   Scoped to .label-row so a plain label keeps its required asterisk tucked
+   against the text instead of flung to the far edge. */
+.lead-field label.label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.lead-field .field-hint {
+  font-family: "DM Sans", sans-serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted, rgba(20, 20, 15, 0.5));
+}
+
+/* Consent notice under the submit button.
+   .lead-fine was built for a single short mono line (it even forces
+   white-space: nowrap at 8px on mobile). This is real GDPR consent copy that
+   has to be readable and wrap over several lines, so .lead-consent opts out of
+   the uppercase/mono treatment entirely. */
+.lead-fine.lead-consent {
+  max-width: 380px;
+  margin: 16px auto 0;
+  font-family: "DM Sans", sans-serif;
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+  color: var(--muted, rgba(20, 20, 15, 0.5));
+}
+.lead-fine a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.lead-fine a:hover { color: var(--brand, #DC2626); }
+
+@media (max-width: 480px) {
+  /* Beat the 8px/nowrap rule the original .lead-fine sets at this breakpoint. */
+  .lead-fine.lead-consent {
+    font-size: 11px;
+    letter-spacing: 0;
+    white-space: normal;
+  }
+}
+
+/* ---------- /wa-dm — WhatsApp hand-off page ---------- */
+
+:root {
+  --wa: #25D366;
+  --wa-deep: #1EBE5A;
+  --wa-ink: #075E54;
+}
+
+/* The main action card holding the message preview + CTA. */
+.wa-card {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 30px 28px 26px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(37, 211, 102, .32);
+  box-shadow:
+    0 0 0 1px rgba(37, 211, 102, .1),
+    0 28px 60px -34px rgba(15, 23, 42, .4);
+  text-align: center;
+}
+.wa-card-head { margin-bottom: 20px; }
+.wa-step-chip {
+  display: inline-block;
+  padding: 5px 13px;
+  margin-bottom: 13px;
+  border-radius: 999px;
+  background: rgba(37, 211, 102, .12);
+  border: 1px solid rgba(37, 211, 102, .4);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: #0B7A3B;
+}
+.wa-card-title {
+  margin: 0 0 9px;
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  font-size: clamp(19px, 3.4vw, 23px);
+  line-height: 1.25;
+  letter-spacing: -.02em;
+  color: var(--ink, #111827);
+}
+.wa-card-sub {
+  margin: 0;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-soft, #475569);
+}
+
+/* Preview of the exact message, as a WhatsApp-style bubble. */
+.wa-preview { margin: 0 0 22px; text-align: left; }
+.wa-preview-label {
+  display: block;
+  margin-bottom: 7px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted, #64748B);
+}
+.wa-bubble {
+  position: relative;
+  padding: 13px 15px 9px;
+  border-radius: 12px 12px 12px 3px;
+  background: #E7FFDB;
+  border: 1px solid rgba(37, 211, 102, .28);
+}
+.wa-bubble p {
+  margin: 0 0 5px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: #0F2419;
+}
+.wa-bubble-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 11px;
+  color: #4A7C5E;
+}
+.wa-bubble-meta svg { color: #34B7F1; }
+
+/* The button itself. */
+.wa-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.wa-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  width: 100%;
+  padding: 17px 30px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--wa) 0%, var(--wa-deep) 100%);
+  color: #ffffff;
+  font-family: "Poppins", sans-serif;
+  font-size: 16.5px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  text-decoration: none;
+  box-shadow: 0 16px 34px -12px rgba(37, 211, 102, .75);
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+  animation: wa-pulse 2.6s ease-in-out infinite;
+}
+.wa-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 42px -12px rgba(37, 211, 102, .85);
+  filter: brightness(1.04);
+  color: #fff;
+}
+.wa-btn:active { transform: translateY(0); }
+.wa-btn-icon { width: 23px; height: 23px; flex: none; }
+
+@keyframes wa-pulse {
+  0%, 100% { box-shadow: 0 16px 34px -12px rgba(37, 211, 102, .75); }
+  50%      { box-shadow: 0 16px 44px -10px rgba(37, 211, 102, .95); }
+}
+
+.wa-hint {
+  margin: 0;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted, #64748B);
+  text-align: center;
+}
+
+/* Reassurance ticks under the CTA. */
+.wa-trust {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin: 20px 0 0;
+  padding: 16px 0 0;
+  list-style: none;
+  border-top: 1px solid rgba(15, 23, 42, .08);
+}
+.wa-trust li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-soft, #475569);
+}
+.wa-trust svg {
+  width: 13px; height: 13px; flex: none;
+  fill: none; stroke: var(--wa-deep); stroke-width: 2.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* Compact FAQ (native <details>). */
+.wa-faq {
+  max-width: 620px;
+  margin: 0 auto;
+  border-top: 1px solid rgba(15, 23, 42, .1);
+}
+.wa-faq-item { border-bottom: 1px solid rgba(15, 23, 42, .1); }
+.wa-faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 17px 2px;
+  cursor: pointer;
+  list-style: none;
+  font-family: "Poppins", sans-serif;
+  font-size: 15.5px;
+  font-weight: 500;
+  color: var(--ink, #111827);
+  transition: color .2s ease;
+}
+.wa-faq-item summary::-webkit-details-marker { display: none; }
+.wa-faq-item summary::after {
+  content: "+";
+  flex: none;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--wa-deep);
+  transition: transform .25s ease;
+}
+.wa-faq-item[open] summary::after { transform: rotate(45deg); }
+.wa-faq-item summary:hover { color: var(--brand, #DC2626); }
+.wa-faq-item p {
+  margin: 0;
+  padding: 0 2px 18px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--ink-soft, #475569);
+}
+
+/* Last-chance CTA at the bottom of the page. */
+.wa-tail {
+  max-width: 420px;
+  margin: 48px auto 0;
+  text-align: center;
+}
+.wa-tail-text {
+  margin: 0 0 13px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14.5px;
+  color: var(--ink-soft, #475569);
+}
+.wa-btn-ghost {
+  background: transparent;
+  color: var(--wa-deep);
+  border: 1.5px solid rgba(37, 211, 102, .55);
+  box-shadow: none;
+  animation: none;
+  font-size: 15.5px;
+  padding: 14px 26px;
+}
+.wa-btn-ghost:hover {
+  background: rgba(37, 211, 102, .08);
+  color: var(--wa-deep);
+  box-shadow: none;
+}
+
+.wa-error {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(220, 38, 38, .07);
+  border: 1px solid rgba(220, 38, 38, .3);
+  font-family: "DM Sans", sans-serif;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: #B91C1C;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .wa-card { padding: 26px 18px 22px; border-radius: 15px; }
+  .wa-btn { padding: 16px 18px; font-size: 15.5px; }
+  .wa-trust { gap: 8px 14px; }
+  .wa-faq-item summary { font-size: 14.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-btn { animation: none; }
+  .wa-faq-item summary::after { transition: none; }
+}
+
+/* ---------- Credential pills as a standalone row on inner pages ----------
+   The compact-hero block sets `margin-top: 10px !important` on
+   .hero-cred-pills (and `0 !important` above 1000px) for the landing hero.
+   Those selectors are unscoped, so they leak onto every inner page that reuses
+   the class and leave the pills jammed against whatever sits above them. This
+   modifier needs both !important and higher specificity to win. */
+.hero-cred-pills.cred-row-standalone {
+  margin-top: 46px !important;
+  padding-top: 30px;
+  border-top: 1px solid rgba(15, 23, 42, .09);
+  gap: 10px;
+}
+@media (max-width: 560px) {
+  .hero-cred-pills.cred-row-standalone { margin-top: 34px !important; padding-top: 24px; }
+}
+
+/* ---------- "Can't find a time?" fallback card (/book-a-call) ---------- */
+.slot-help {
+  /* No max-width: .cal-frame above it is width:100% of .wrap.narrow, so this
+     matches the calendar edge-for-edge. Type is scaled up to suit the width. */
+  width: 100%;
+  margin: 44px auto 0;
+  padding: 40px 38px 34px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, .1);
+  box-shadow: 0 24px 56px -34px rgba(15, 23, 42, .32);
+  text-align: center;
+}
+.slot-help-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 11px;
+  margin-bottom: 15px;
+  border-radius: 999px;
+  background: rgba(220, 38, 38, .08);
+  border: 1px solid rgba(220, 38, 38, .32);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--brand-deep, #B91C1C);
+}
+.slot-help-eyebrow .dot {
+  position: relative;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #DC2626;
+  box-shadow: 0 0 8px #DC2626;
+  flex-shrink: 0;
+}
+.slot-help-eyebrow .dot::before {
+  content: "";
+  position: absolute; inset: -4px;
+  border-radius: 50%; background: #DC2626;
+  opacity: .4; animation: dot-pulse 2s ease-out infinite;
+}
+.slot-help-title {
+  margin: 0 0 12px;
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  font-size: clamp(25px, 3.6vw, 36px);
+  line-height: 1.18;
+  letter-spacing: -.02em;
+  color: var(--ink, #111827);
+}
+.slot-help-title .accent { color: var(--brand, #DC2626); }
+.slot-help-body {
+  max-width: 660px;
+  margin: 0 auto 26px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--ink-soft, #475569);
+}
+.slot-help-body strong { color: var(--ink, #111827); font-weight: 600; }
+
+.slot-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+}
+.slot-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 17px 34px;
+  border-radius: 999px;
+  font-family: "Poppins", sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  text-decoration: none;
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.slot-btn svg { width: 21px; height: 21px; flex: none; }
+.slot-btn-wa {
+  background: linear-gradient(180deg, #25D366 0%, #1EBE5A 100%);
+  color: #ffffff;
+  box-shadow: 0 14px 30px -12px rgba(37, 211, 102, .7);
+}
+.slot-btn-wa:hover {
+  transform: translateY(-2px);
+  color: #fff;
+  box-shadow: 0 18px 38px -12px rgba(37, 211, 102, .82);
+}
+.slot-btn-mail {
+  background: #ffffff;
+  color: var(--ink, #111827);
+  border: 1.5px solid rgba(15, 23, 42, .16);
+}
+.slot-btn-mail:hover {
+  transform: translateY(-2px);
+  border-color: rgba(15, 23, 42, .3);
+  color: var(--ink, #111827);
+}
+
+.slot-help-contacts {
+  margin: 22px 0 0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13.5px;
+  letter-spacing: .04em;
+  color: var(--muted, #64748B);
+}
+.slot-help-contacts a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.slot-help-contacts a:hover { color: var(--brand, #DC2626); }
+.slot-help-sep { margin: 0 8px; opacity: .5; }
+
+@media (max-width: 720px) {
+  /* Scale the desktop-width type back down once the card is phone-width. */
+  .slot-help { padding: 30px 20px 26px; border-radius: 15px; margin-top: 34px; }
+  .slot-help-body { font-size: 15.5px; margin-bottom: 22px; }
+  .slot-btn { padding: 16px 22px; font-size: 15.5px; }
+  .slot-help-eyebrow { font-size: 9.5px; }
+}
+@media (max-width: 560px) {
+  .slot-help-actions { flex-direction: column; gap: 12px; }
+  .slot-btn { width: 100%; }
+  .slot-help-contacts { font-size: 11.5px; line-height: 1.9; }
+  .slot-help-sep { display: block; height: 0; overflow: hidden; margin: 0; }
+}

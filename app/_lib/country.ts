@@ -1,6 +1,6 @@
 // Country data + dial-code → ISO-3166-1 alpha-2 mapping.
 //
-// The lead/checkout forms collect a *dial code* (e.g. "+91") in `country_code`,
+// The registration form collects a *dial code* (e.g. "+44") in `country_code`,
 // but Meta's `country` matching signal expects a 2-letter ISO code (e.g. "IN").
 // `dialCodeToCountryIso` maps the selected dial code to its ISO-2 so both the
 // browser MAM and the server CAPI send a valid, hashable `country` value.

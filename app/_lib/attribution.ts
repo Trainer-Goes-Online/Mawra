@@ -1,5 +1,5 @@
 // Shared attribution helpers — UTM + click-id capture that flows from the
-// landing page through checkout to the post-payment booking page, and into the
+// landing page through the registration modal to the WhatsApp hand-off page, and into the
 // Pabbly webhook. Plain module (no "use client") so both the client tracker and
 // the server API routes can import it.
 

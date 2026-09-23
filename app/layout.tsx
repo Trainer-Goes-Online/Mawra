@@ -69,7 +69,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://f.vimeocdn.com" crossOrigin="" />
         <link rel="preconnect" href="https://i.vimeocdn.com" crossOrigin="" />
         <link rel="dns-prefetch" href="https://vod-adaptive-ak.vimeocdn.com" />
-        <link rel="stylesheet" href="/funnel.css?v=61" />
+        <link rel="stylesheet" href="/funnel.css?v=67" />
       </head>
       <body>
         {/* Google Analytics (gtag.js) — only if NEXT_PUBLIC_GA_ID is set */}
