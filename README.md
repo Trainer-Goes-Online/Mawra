@@ -1,4 +1,4 @@
-# Coach Mawra — UK Free Funnel
+# Coach Mawra — UK Free Funnel (Live from 25th Sep 2026)
 
 A Next.js (App Router) landing-page funnel for **Coach Mawra** (women's fat-loss &
 identity transformation), targeted at **UK traffic**. Visitors read the landing
