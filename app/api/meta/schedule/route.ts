@@ -14,7 +14,8 @@ const GRAPH_API_VERSION = "v25.0";
 // H&W: `Schedule` (standard) is blocked by name on a restricted dataset; the
 // neutral custom `call_booked` is the signal that keeps flowing. Both fire, both
 // env-configurable so they can be recoded (roadmap Scenario C) without a deploy.
-const SCHEDULE_STANDARD_EVENT = process.env.SCHEDULE_STANDARD_EVENT || "Schedule";
+// H&W: custom-only. We fire ONLY the neutral custom `call_booked` — never the
+// standard `Schedule` (restricted by name on this dataset).
 const SCHEDULE_CUSTOM_EVENT = process.env.SCHEDULE_CUSTOM_EVENT || "call_booked";
 
 /** Pull the already-hashed MAM identity out of the tgo_mam cookie, if present. */
@@ -88,10 +89,7 @@ export async function POST(req: NextRequest) {
       event_source_url: toOrigin(body.eventSourceUrl),
       user_data: userData,
     };
-    const events = [
-      { ...base, event_name: SCHEDULE_STANDARD_EVENT },
-      { ...base, event_name: SCHEDULE_CUSTOM_EVENT },
-    ];
+    const events = [{ ...base, event_name: SCHEDULE_CUSTOM_EVENT }];
 
     const payload: Record<string, unknown> = { data: events };
     if (process.env.META_TEST_EVENT_CODE) {
@@ -110,9 +108,7 @@ export async function POST(req: NextRequest) {
       console.error("[sched] Meta CAPI FAILED", res.status, await res.text());
       return NextResponse.json({ ok: true, capi: "error" });
     }
-    console.log(
-      `[sched] CAPI sent → ${SCHEDULE_STANDARD_EVENT} + ${SCHEDULE_CUSTOM_EVENT} (event_id=${eventId})`
-    );
+    console.log(`[sched] CAPI sent → ${SCHEDULE_CUSTOM_EVENT} (event_id=${eventId})`);
     return NextResponse.json({ ok: true, capi: "sent" });
   } catch (err) {
     console.error("[sched] error", err);

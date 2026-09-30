@@ -74,7 +74,7 @@ export default async function BookACallPage({
   return (
     <>
       <MamReapply />
-      <link rel="stylesheet" href="/book-a-call.css?v=2" />
+      <link rel="stylesheet" href="/book-a-call.css?v=3" />
       <main>
         <section className="sec-band-night" style={{ paddingTop: 36, paddingBottom: 40 }}>
           <div className="wrap narrow">

@@ -122,9 +122,9 @@ export default function LeadModal() {
       if (trigger) {
         e.preventDefault();
         // Any landing-page CTA counts as top-of-funnel intent. Fire GA4
-        // add_to_cart + the Meta intent event (CAPI) — each once per browser,
-        // host-gated, non-blocking.
-        trackGa4EventOnce("add_to_cart");
+        // atc_event + the Meta custom atc_event (CAPI) — each once per browser,
+        // host-gated, non-blocking. (GA4 mirrors the Meta custom name.)
+        trackGa4EventOnce("atc_event");
         fireAddToCartOnce();
         setError(null);
         setErrorField(null);
@@ -407,7 +407,7 @@ export default function LeadModal() {
           )}
 
           <button type="submit" className="lead-submit" disabled={submitting}>
-            {submitting ? "Just a moment…" : "Continue on WhatsApp"}
+            {submitting ? "Just a moment…" : "Book My Free Call"}
             <span className="ar" aria-hidden="true">
               →
             </span>

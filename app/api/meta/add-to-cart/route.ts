@@ -18,7 +18,8 @@ import { TRACKING_HOST } from "@/app/_lib/tracking";
 export const runtime = "nodejs";
 
 const GRAPH_API_VERSION = "v25.0";
-const ATC_STANDARD_EVENT = process.env.ATC_STANDARD_EVENT || "AddToCart";
+// H&W: custom-only. We fire ONLY the neutral custom `atc_event` — never the
+// standard `AddToCart` (restricted by name on this dataset).
 const ATC_CUSTOM_EVENT = process.env.ATC_CUSTOM_EVENT || "atc_event";
 
 export async function POST(req: NextRequest) {
@@ -53,9 +54,8 @@ export async function POST(req: NextRequest) {
     // within 48h. Falls back to a time-based id when _fbp is unavailable.
     const eventId = fbp ? sha256(`${fbp}|atc`) : `atc_${Date.now()}`;
 
-    // Shared base — standard + custom events differ only by event_name, so Meta
-    // treats them as two distinct events that each dedup on this event_id.
-    const base = {
+    const event = {
+      event_name: ATC_CUSTOM_EVENT,
       event_time: Math.floor(Date.now() / 1000),
       event_id: eventId,
       action_source: "website" as const,
@@ -67,12 +67,8 @@ export async function POST(req: NextRequest) {
         ...(clientIp && { client_ip_address: clientIp }),
       },
     };
-    const events = [
-      { ...base, event_name: ATC_STANDARD_EVENT },
-      { ...base, event_name: ATC_CUSTOM_EVENT },
-    ];
 
-    const payload: Record<string, unknown> = { data: events };
+    const payload: Record<string, unknown> = { data: [event] };
     if (process.env.META_TEST_EVENT_CODE) {
       payload.test_event_code = process.env.META_TEST_EVENT_CODE;
     }
@@ -89,9 +85,7 @@ export async function POST(req: NextRequest) {
       console.error("[atc] Meta CAPI FAILED", res.status, await res.text());
       return NextResponse.json({ ok: true, capi: "error" });
     }
-    console.log(
-      `[atc] CAPI sent → ${ATC_STANDARD_EVENT} + ${ATC_CUSTOM_EVENT} (event_id=${eventId})`
-    );
+    console.log(`[atc] CAPI sent → ${ATC_CUSTOM_EVENT} (event_id=${eventId})`);
     return NextResponse.json({ ok: true, capi: "sent" });
   } catch (err) {
     console.error("[atc] error", err);

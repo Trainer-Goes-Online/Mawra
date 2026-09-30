@@ -42,6 +42,22 @@ export function toOrigin(url: string | undefined | null): string {
   }
 }
 
+/**
+ * Hybrid `_fbc` resolver (same logic as the paid branch). `_fbc` is the click id
+ * Meta uses to attribute a conversion to the exact ad. Prefer Meta's own cookie;
+ * when it's absent (iOS / in-app browsers) rebuild `fb.1.<clickTs>.<fbclid>` from
+ * the captured fbclid so attribution stays deterministic. Returns "" if neither.
+ */
+export function resolveFbc(opts: {
+  cookieFbc?: string;
+  fbclid?: string;
+  fbclidTs?: number;
+}): string {
+  if (opts.cookieFbc) return opts.cookieFbc;
+  if (opts.fbclid) return `fb.1.${opts.fbclidTs || Date.now()}.${opts.fbclid}`;
+  return "";
+}
+
 export type MetaCapiParams = {
   pixelId: string;
   accessToken: string;
@@ -138,10 +154,9 @@ export async function sendMetaCapiEvent(params: MetaCapiParams) {
 }
 
 // ============================================================================
-// FREE registration CAPI — fired when the popup lead form is submitted.
-// Sends TWO events in one call: a standard event (FREE_STANDARD_EVENT, e.g.
-// "CompleteRegistration") and a custom event (FREE_CUSTOM_EVENT, e.g.
-// "FreeLeadRegistration"). Env-configurable so the names can change without a
+// FREE registration CAPI — fired when the registration form is submitted.
+// H&W custom-only: sends ONE custom event (FREE_CUSTOM_EVENT, default
+// "registration_complete"). Env-configurable so the name can change without a
 // code deploy. Best-effort: logs and swallows errors so it never fails a lead.
 // ============================================================================
 
@@ -168,10 +183,9 @@ export async function sendMetaLeadCapi(params: MetaLeadParams): Promise<void> {
     return;
   }
 
-  // Standard event name: strip spaces so "Complete Registration" resolves to
-  // Meta's real standard event "CompleteRegistration".
-  const standardEvent = (process.env.FREE_STANDARD_EVENT || "CompleteRegistration").replace(/\s+/g, "");
-  const customEvent = process.env.FREE_CUSTOM_EVENT || "FreeLeadRegistration";
+  // H&W: custom-only. We fire ONLY the neutral custom event — never the standard
+  // `CompleteRegistration` (restricted by name on this dataset).
+  const customEvent = process.env.FREE_CUSTOM_EVENT || "registration_complete";
 
   const normalisedEmail = params.email.trim().toLowerCase();
   const rawPhone = params.phone.replace(/\D/g, "");
@@ -202,10 +216,7 @@ export async function sendMetaLeadCapi(params: MetaLeadParams): Promise<void> {
     user_data: userData,
   };
 
-  const events = [
-    { ...base, event_name: standardEvent },
-    { ...base, event_name: customEvent },
-  ];
+  const events = [{ ...base, event_name: customEvent }];
 
   const payload: Record<string, unknown> = { data: events };
   if (process.env.META_TEST_EVENT_CODE) {
@@ -225,87 +236,10 @@ export async function sendMetaLeadCapi(params: MetaLeadParams): Promise<void> {
       console.error("[capi] registration FAILED", res.status, await res.text());
     } else {
       console.log(
-        `[capi] registration sent → ${standardEvent} + ${customEvent} (event_id=${params.eventId})`
+        `[capi] registration sent → ${customEvent} (event_id=${params.eventId})`
       );
     }
   } catch (err) {
     console.error("[capi] registration error:", err);
-  }
-}
-
-// ============================================================================
-// QUALIFIED-LEAD CAPI — fired ONLY when the visitor qualifies (picked one of the
-// priced investment tiers on the final wizard step, NOT the "not ready to
-// invest" decline). Single neutral custom event (QUALIFIED_EVENT, default
-// "QualifiedLead"), env-configurable so it can be recoded without a deploy
-// (roadmap Scenario C). Same full hashed user_data as the registration events —
-// em/ph/fn/ln/country/external_id + fbc/fbp/IP/UA — so EMQ is the highest the
-// collected fields allow (~8-9). No custom_data, origin-only URL: nothing
-// health-y or descriptive reaches Meta. Best-effort: logs + swallows errors.
-// ============================================================================
-
-export async function sendMetaQualifiedLeadCapi(params: MetaLeadParams): Promise<void> {
-  const pixelId = process.env.META_PIXEL_ID;
-  const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
-  if (!pixelId || !accessToken) {
-    console.warn("META_PIXEL_ID / META_CAPI_ACCESS_TOKEN not set — skipping QualifiedLead CAPI.");
-    return;
-  }
-
-  const eventName = process.env.QUALIFIED_EVENT || "QualifiedLead";
-
-  const normalisedEmail = params.email.trim().toLowerCase();
-  const rawPhone = params.phone.replace(/\D/g, "");
-  const fn = params.firstName.trim().toLowerCase();
-  const ln = params.lastName.trim().toLowerCase();
-  const ct = params.city.trim().toLowerCase().replace(/[^a-z]/g, "");
-  const country = params.countryCode.trim().toLowerCase();
-
-  const userData = {
-    em: [sha256(normalisedEmail)],
-    ...(rawPhone && { ph: [sha256(rawPhone)] }),
-    ...(fn && { fn: [sha256(fn)] }),
-    ...(ln && { ln: [sha256(ln)] }),
-    ...(ct && { ct: [sha256(ct)] }),
-    ...(country && { country: [sha256(country)] }),
-    external_id: [sha256(normalisedEmail)],
-    ...(params.fbc && { fbc: params.fbc }),
-    ...(params.fbp && { fbp: params.fbp }),
-    ...(params.clientUserAgent && { client_user_agent: params.clientUserAgent }),
-    ...(params.clientIp && { client_ip_address: params.clientIp }),
-  };
-
-  const event = {
-    event_name: eventName,
-    event_time: Math.floor(Date.now() / 1000),
-    event_id: params.eventId,
-    action_source: "website" as const,
-    event_source_url: toOrigin(params.eventSourceUrl),
-    user_data: userData,
-  };
-
-  const payload: Record<string, unknown> = { data: [event] };
-  if (process.env.META_TEST_EVENT_CODE) {
-    payload.test_event_code = process.env.META_TEST_EVENT_CODE;
-  }
-
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/${GRAPH_API_VERSION}/${pixelId}/events?access_token=${accessToken}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }
-    );
-    if (!res.ok) {
-      console.error("[capi] QualifiedLead FAILED", res.status, await res.text());
-    } else {
-      console.log(
-        `[capi] QualifiedLead sent → ${eventName} (event_id=${params.eventId})`
-      );
-    }
-  } catch (err) {
-    console.error("[capi] QualifiedLead error:", err);
   }
 }

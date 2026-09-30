@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { UTM_KEYS, type Attribution } from "@/app/_lib/attribution";
-import { sha256, toOrigin, sendMetaLeadCapi, sendMetaQualifiedLeadCapi } from "@/app/_lib/meta-capi";
+import { type Attribution } from "@/app/_lib/attribution";
+import { sha256, toOrigin, resolveFbc, sendMetaLeadCapi } from "@/app/_lib/meta-capi";
 import { dialCodeToCountryIso } from "@/app/_lib/country";
 
 // Node runtime (uses node:crypto via sha256). Free UK funnel: this endpoint
@@ -87,8 +87,20 @@ export async function POST(req: NextRequest) {
     const city = (body.city || "").trim();
     const externalId = sha256(email.toLowerCase());
 
-    // Meta matching identifiers (read from cookies / headers).
-    const fbc = req.cookies.get("_fbc")?.value || "";
+    const attribution = body.attribution || {};
+
+    // Meta matching identifiers (read from cookies / headers) — same fetch logic
+    // as the paid branch webhook. Hybrid _fbc: prefer the cookie, else rebuild
+    // fb.1.<ts>.<fbclid> from the captured click id.
+    const fbclid = attribution.fbclid || "";
+    const fbclidTs = attribution.captured_at
+      ? Date.parse(attribution.captured_at) || Date.now()
+      : Date.now();
+    const fbc = resolveFbc({
+      cookieFbc: req.cookies.get("_fbc")?.value || "",
+      fbclid,
+      fbclidTs,
+    });
     const fbp = req.cookies.get("_fbp")?.value || "";
     const clientIp =
       req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
@@ -96,22 +108,21 @@ export async function POST(req: NextRequest) {
       "";
     const clientUserAgent = req.headers.get("user-agent") || "";
 
-    const attribution = body.attribution || {};
     const leadId = `lead_${Date.now()}`;
     const originUrl = toOrigin(body.eventSourceUrl);
 
-    // One row per lead. Stable keys so the Sheet column mapping never shifts;
-    // CRM-lifecycle fields (contacted, replied, sale_closed, …) are reserved as
-    // empty placeholders and filled later by downstream automation.
+    // Exact 25-field CRM payload, mirroring the paid branch webhook shape and
+    // per-field logic. Free funnel: there is no payment, so amount is 0 and
+    // purchase_event_id falls back to the lead id (same slot the paid webhook
+    // used for the Razorpay payment id). CRM-lifecycle columns (call_booked,
+    // schedule_capi_*, …) are filled downstream by the Sheet's Apps Script.
     const payload: Record<string, unknown> = {
-      event: "lead_submitted",
-      product: "Free Consultation · UK",
       lead_id: leadId,
       created_at: new Date().toISOString(),
       first_name: body.first_name,
       last_name: body.last_name,
       email,
-      phone,
+      phone: phoneDigits,
       city,
       country_code: countryIso,
       fbc,
@@ -120,21 +131,30 @@ export async function POST(req: NextRequest) {
       client_user_agent: clientUserAgent,
       external_id: externalId,
       event_source_url: originUrl,
+      amount: 0,
       is_test: "false",
-      full_name: `${body.first_name} ${body.last_name}`.trim(),
-      landing_url: attribution.landing_url || "",
+      purchase_event_id: leadId,
+      utm_source: attribution.utm_source || "",
+      utm_medium: attribution.utm_medium || "",
+      utm_campaign: attribution.utm_campaign || "",
+      utm_content: attribution.utm_content || "",
+      utm_term: attribution.utm_term || "",
+      fbclid,
+      landing_page_url: attribution.landing_url || "",
       referrer: attribution.referrer || "",
     };
-    // UTM / click-id fields flattened to the top level.
-    for (const k of UTM_KEYS) {
-      payload[k] = attribution[k] || "";
-    }
 
     console.log(`[lead] ${leadId} received. Pabbly payload:`, JSON.stringify(payload));
     await sendToSheet(payload);
 
-    // Shared Meta identity for both CAPI events below.
-    const identity = {
+    // Fire the free-registration Meta CAPI event — the custom `registration_complete`
+    // ONLY (H&W custom-only; no standard CompleteRegistration). There is no
+    // qualification step in this funnel, so no QualifiedLead is fired. Awaited so
+    // it completes in serverless, but self-contained — it logs and swallows its
+    // own errors, so a CAPI failure never fails the lead. event_id is stable per
+    // email so Meta's 48h dedup collapses a genuine re-submit by the same person.
+    await sendMetaLeadCapi({
+      eventId: `reg_${externalId}`,
       email,
       phone,
       firstName: body.first_name!,
@@ -146,20 +166,7 @@ export async function POST(req: NextRequest) {
       fbp,
       clientIp,
       clientUserAgent,
-    };
-
-    // Fire the free-registration Meta CAPI events (standard + custom).
-    // Awaited (so they complete in serverless) but self-contained — each logs
-    // and swallows its own errors, so a CAPI failure never fails the lead.
-    // event_id is stable per email (not the per-submit lead_id) so Meta's 48h
-    // dedup collapses a genuine re-submit by the same person.
-    await sendMetaLeadCapi({ eventId: `reg_${externalId}`, ...identity });
-
-    // QualifiedLead used to be gated on the old investment question. That
-    // qualification step is gone with the paid funnel, so every registration now
-    // counts — the event keeps firing so campaigns already optimising against it
-    // don't go blind.
-    await sendMetaQualifiedLeadCapi({ eventId: `qual_${externalId}`, ...identity });
+    });
 
     return NextResponse.json({ ok: true, leadId });
   } catch (err: unknown) {
