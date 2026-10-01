@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  PAID FUNNEL — post-payment confirmation email
+  Sent from the Pabbly workflow triggered by PABBLY_WEBHOOK_URL, which fires
+  from /api/razorpay/verify only after the Razorpay signature is verified.
+
+  SUBJECT LINE (pick one):
+    Payment received — now pick your call time
+    You're paid up. One step left: pick your slot
+    ₹{{amount}} received — book your call with Mawra
+
+  MERGE TAGS — replace each {{token}} with the matching Pabbly field from the
+  webhook payload. Every one of these is always present in the payload:
+
+    {{first_name}}   first_name    e.g. Harshita
+    {{last_name}}    last_name
+    {{email}}        email
+    {{phone}}        phone         full international format, e.g. +919876543210
+    {{amount}}       amount        rupees as a number, e.g. 97
+    {{payment_id}}   payment_id    Razorpay payment id, e.g. pay_Rx12ab34cd
+    {{product}}      product       "1:1 Diagnostic Call with Mawra Ishaque"
+
+  The booking button carries the customer's details so Calendly prefills them
+  and they don't retype what they already entered at checkout. Keep the query
+  string intact.
+  ============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>Payment received — one step left</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f7;">
+
+  <!-- Preheader: the grey preview line next to the subject in the inbox. -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your payment is confirmed. Your slot isn't booked until you pick a time.</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;"><tr><td align="center" style="padding:24px 12px;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
+
+      <tr><td style="height:5px;background:#DC2626;line-height:5px;font-size:5px;">&nbsp;</td></tr>
+
+      <tr><td style="padding:32px 32px 8px;">
+
+        <!-- Payment confirmed -->
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+          <tr>
+            <td style="font-size:13px;font-weight:bold;color:#047857;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:999px;padding:7px 15px;">&#10003;&nbsp; Payment received</td>
+          </tr>
+        </table>
+
+        <p style="margin:0 0 16px;font-size:17px;line-height:1.6;color:#111827;">Hi {{first_name}},</p>
+
+        <p style="margin:0 0 22px;font-size:16px;line-height:1.65;color:#334155;">Thank you &mdash; your payment has gone through and your seat is paid for.</p>
+
+        <!-- The one thing this email exists to say -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;margin:0 0 24px;">
+          <tr><td style="padding:22px 20px;text-align:center;">
+            <h3 style="margin:0 0 8px;font-size:18px;font-weight:bold;color:#991B1B;">Your slot isn&rsquo;t booked yet</h3>
+            <p style="margin:0 0 18px;font-size:14px;color:#7F1D1D;line-height:1.6;">Paying held your place in the queue &mdash; it doesn&rsquo;t pick your time. Choose a date and time now to lock in your call with Mawra.</p>
+
+            <!-- Bulletproof button -->
+            <table role="presentation" cellpadding="0" cellspacing="0" align="center">
+              <tr><td align="center" bgcolor="#DC2626" style="border-radius:999px;">
+                <a href="https://vsl.transformationsandbeyond.com/book-a-call?p={{payment_id}}&amp;first_name={{first_name}}&amp;last_name={{last_name}}&amp;email={{email}}&amp;phone={{phone}}" target="_blank" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:999px;">Pick My Time &rarr;</a>
+              </td></tr>
+            </table>
+
+            <p style="margin:14px 0 0;font-size:12px;color:#9F1239;line-height:1.5;">Slots are limited and go in the order they&rsquo;re booked.</p>
+          </td></tr>
+        </table>
+
+        <!-- Receipt -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eef0f3;border-radius:10px;margin:0 0 26px;">
+          <tr><td style="padding:18px 20px;">
+            <p style="margin:0 0 12px;font-size:11px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:#8a94a6;">Your receipt</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:4px 0;font-size:14px;color:#64748B;">Booking fee paid</td>
+                <td align="right" style="padding:4px 0;font-size:15px;font-weight:bold;color:#111827;">&#8377;{{amount}}</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 0;font-size:14px;color:#64748B;">For</td>
+                <td align="right" style="padding:4px 0;font-size:14px;color:#111827;">{{product}}</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 0;font-size:14px;color:#64748B;">Payment ID</td>
+                <td align="right" style="padding:4px 0;font-size:13px;color:#64748B;font-family:'Courier New',Courier,monospace;">{{payment_id}}</td>
+              </tr>
+            </table>
+          </td></tr>
+        </table>
+
+        <!-- What the call covers -->
+        <p style="margin:0 0 12px;font-size:16px;font-weight:bold;color:#111827;">What we&rsquo;ll cover</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
+          <tr>
+            <td width="22" valign="top" style="padding:0 0 10px;font-size:15px;color:#DC2626;line-height:1.6;">&#10003;</td>
+            <td valign="top" style="padding:0 0 10px;font-size:15px;line-height:1.6;color:#334155;">Your personalised diagnosis and transformation roadmap</td>
+          </tr>
+          <tr>
+            <td width="22" valign="top" style="padding:0 0 10px;font-size:15px;color:#DC2626;line-height:1.6;">&#10003;</td>
+            <td valign="top" style="padding:0 0 10px;font-size:15px;line-height:1.6;color:#334155;">An honest fit check &mdash; I&rsquo;ll tell you if the Identity Transformation Programme isn&rsquo;t right for you</td>
+          </tr>
+          <tr>
+            <td width="22" valign="top" style="font-size:15px;color:#DC2626;line-height:1.6;">&#10003;</td>
+            <td valign="top" style="font-size:15px;line-height:1.6;color:#334155;">A structured walk-through of the programme and your path forward</td>
+          </tr>
+        </table>
+
+        <!-- Prep note -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border-left:3px solid #CBD5E1;border-radius:6px;margin:0 0 24px;">
+          <tr><td style="padding:14px 16px;">
+            <p style="margin:0;font-size:14px;line-height:1.6;color:#475569;">This is a <strong style="color:#111827;">60-minute conversation</strong>. Please book a time when you can be somewhere quiet and uninterrupted &mdash; it&rsquo;s the difference between a nice chat and a session that actually changes something.</p>
+          </td></tr>
+        </table>
+
+        <p style="margin:0 0 6px;font-size:16px;line-height:1.6;color:#111827;">Talk soon,<br>Mawra</p>
+
+      </td></tr>
+
+      <!-- Fallback link, for clients that strip the button -->
+      <tr><td style="padding:8px 32px 26px;">
+        <p style="margin:0;font-size:12px;line-height:1.7;color:#8a94a6;">Button not working? Paste this into your browser:<br>
+          <a href="https://vsl.transformationsandbeyond.com/book-a-call?p={{payment_id}}&amp;first_name={{first_name}}&amp;last_name={{last_name}}&amp;email={{email}}&amp;phone={{phone}}" target="_blank" style="color:#DC2626;text-decoration:underline;word-break:break-all;">vsl.transformationsandbeyond.com/book-a-call</a>
+        </p>
+      </td></tr>
+
+      <tr><td style="padding:22px 32px 26px;border-top:1px solid #eef0f3;">
+        <p style="margin:0 0 8px;font-size:12px;line-height:1.7;color:#8a94a6;">Coach Mawra &middot; Women&rsquo;s Fat Loss &amp; Identity Transformation</p>
+        <p style="margin:0;font-size:12px;line-height:1.7;color:#8a94a6;">
+          <a href="https://vsl.transformationsandbeyond.com/terms" target="_blank" style="color:#8a94a6;text-decoration:underline;">Terms</a> &middot;
+          <a href="https://vsl.transformationsandbeyond.com/privacy" target="_blank" style="color:#8a94a6;text-decoration:underline;">Privacy</a> &middot;
+          <a href="https://vsl.transformationsandbeyond.com/refund" target="_blank" style="color:#8a94a6;text-decoration:underline;">Refund Policy</a>
+          <br>This is a receipt for your booking. Reply STOP to opt out of marketing emails.
+        </p>
+      </td></tr>
+
+    </table>
+  </td></tr></table>
+</body>
+</html>

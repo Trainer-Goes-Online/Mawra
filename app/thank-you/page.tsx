@@ -2,36 +2,31 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import FooterDisclaimer from "../_components/FooterDisclaimer";
 import MamReapply from "../_components/MamReapply";
+import ConfirmationStep from "../_components/ConfirmationStep";
+import WhatsAppCta from "../_components/WhatsAppCta";
+import { BRAND_NAME } from "../_lib/contact";
+
+const SESSION_NAME = "1:1 Diagnostic Call";
 
 export const metadata: Metadata = {
-  title: "Booking Confirmed · Coach Mawra",
+  title: `WAIT! Confirm Your Call | ${BRAND_NAME}`,
   description:
-    "Your 1:1 diagnostic call with Mawra Ishaque is confirmed. Check your email for the call link and details.",
+    "One last step — connect on WhatsApp to confirm your 1:1 diagnostic call with Mawra Ishaque.",
 };
 
 export default function ThankYouPage() {
   return (
     <>
       <MamReapply />
+      <link rel="stylesheet" href="/confirmation-step.css?v=2" />
       <main>
-        <section className="sec-band-night" style={{ paddingTop: 40, paddingBottom: 40 }}>
+        <section
+          className="sec-band-night cstep-host"
+          style={{ paddingTop: 40, paddingBottom: 40 }}
+        >
           <div className="wrap narrow">
-            {/* Confirmation hero */}
-            <div className="sec-head reveal" style={{ marginBottom: 24 }}>
-              <span className="eyebrow-pill" style={{ justifyContent: "center" }}>
-                <span className="dot"></span>You&apos;re All Set
-              </span>
-              <h1 className="sec-h2" style={{ marginTop: 20 }}>
-                Booking <span className="accent">Confirmed.</span>
-              </h1>
-              <p className="sec-lede" style={{ fontFamily: "'DM Sans', sans-serif", fontStyle: "italic", marginTop: 10 }}>
-                Your 1:1 diagnostic call with Mawra Ishaque is locked in.
-              </p>
-              <p style={{ maxWidth: 560, margin: "18px auto 0", fontFamily: "'DM Sans', sans-serif", fontSize: 15.5, lineHeight: 1.7, color: "rgba(71,85,105,0.82)", textAlign: "center" }}>
-                The Zoom link and call details are on their way to your inbox — check your
-                spam folder if you don&apos;t see them in a few minutes.
-              </p>
-            </div>
+            {/* Confirmation hero — WhatsApp bridge */}
+            <ConfirmationStep sessionName={SESSION_NAME} />
 
             {/* What happens next */}
             <div className="sec-head reveal" style={{ marginTop: 48 }}>
@@ -42,8 +37,8 @@ export default function ThankYouPage() {
               <div className="numbox">
                 <div className="numbox-num">1</div>
                 <div className="numbox-content">
-                  <h3 className="numbox-title">Check Your Email</h3>
-                  <p className="numbox-body">Your confirmation and Zoom link are in your inbox. Add the call to your calendar so it doesn&apos;t slip.</p>
+                  <h3 className="numbox-title">Confirm On WhatsApp</h3>
+                  <p className="numbox-body">Message us on WhatsApp to confirm your slot. Once it&apos;s confirmed, your Zoom link and call details land in your inbox — add them to your calendar so the call doesn&apos;t slip.</p>
                 </div>
               </div>
               <div className="numbox">
@@ -62,26 +57,29 @@ export default function ThankYouPage() {
               </div>
             </div>
 
-            {/* Reassurance + credentials */}
-            <div className="compare-callout reveal" style={{ marginTop: 48 }}>
-              <p className="callout-lead">This Hour Is Yours. Make It Count.</p>
-              <p className="callout-punch">
-                Mawra has helped 500+ women break the cycle of emotional eating, PCOS, thyroid and yo-yo dieting.<br />
-                <em>Show up honest, and this call could be the turning point you&apos;ve been waiting years for.</em>
-              </p>
-            </div>
+            {/* Reassurance + credentials + the closing WhatsApp step */}
+            <div className="ty-closing reveal">
+              <div className="compare-callout">
+                <p className="callout-lead">This Hour Is Yours. Make It Count.</p>
+                <p className="callout-punch">
+                  Mawra has helped 500+ women break the cycle of emotional eating, PCOS, thyroid and yo-yo dieting.<br />
+                  <em>Show up honest, and this call could be the turning point you&apos;ve been waiting years for.</em>
+                </p>
+              </div>
 
-            <div className="hero-cred-pills reveal" style={{ justifyContent: "center", marginTop: 52 }}>
-              <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>TEDx Speaker</span>
-              <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>500+ Transformations</span>
-              <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>60+ Kilos Lost and Maintained</span>
-            </div>
+              <hr className="ty-closing-rule" />
 
-            <div className="faq-closing reveal" style={{ marginTop: 36, textAlign: "center" }}>
-              <a className="cta-big" href="/">
-                Back to home
-                <span className="arrow">→</span>
-              </a>
+              <div className="hero-cred-pills ty-closing-pills">
+                <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>TEDx Speaker</span>
+                <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>500+ Transformations</span>
+                <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>60+ Kilos Lost and Maintained</span>
+              </div>
+
+              <hr className="ty-closing-rule" />
+
+              <div className="ty-closing-cta">
+                <WhatsAppCta label="Click Here To Confirm" />
+              </div>
             </div>
           </div>
 
