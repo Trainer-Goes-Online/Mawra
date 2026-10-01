@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import FooterDisclaimer from "../_components/FooterDisclaimer";
 import MamReapply from "../_components/MamReapply";
+import ConfirmHero from "./ConfirmHero";
+import ConfirmCta, { SESSION_NAME } from "./ConfirmCta";
 
 export const metadata: Metadata = {
-  title: "Booking Confirmed · Coach Mawra",
+  // Names the remaining step, so the tab reads as unfinished business.
+  title: `WAIT! Confirm Your ${SESSION_NAME} · Coach Mawra`,
   description:
-    "Your free consultation with Coach Mawra is confirmed. Check your email for the call link and details.",
+    "Your slot is booked but not yet confirmed. Message Coach Mawra on WhatsApp to lock it in.",
   // Final funnel page — reachable only after booking, so keep it out of search.
   robots: { index: false, follow: false },
 };
@@ -15,25 +18,13 @@ export default function ThankYouPage() {
   return (
     <>
       <MamReapply />
+      <link rel="stylesheet" href="/confirm-step.css?v=4" />
       <main>
         <section className="sec-band-night" style={{ paddingTop: 40, paddingBottom: 40 }}>
           <div className="wrap narrow">
-            {/* Confirmation hero */}
-            <div className="sec-head reveal" style={{ marginBottom: 24 }}>
-              <span className="eyebrow-pill" style={{ justifyContent: "center" }}>
-                <span className="dot"></span>You&apos;re All Set
-              </span>
-              <h1 className="sec-h2" style={{ marginTop: 20 }}>
-                Booking <span className="accent">Confirmed.</span>
-              </h1>
-              <p className="sec-lede" style={{ fontFamily: "'DM Sans', sans-serif", fontStyle: "italic", marginTop: 10 }}>
-                Your free consultation with Coach Mawra is locked in.
-              </p>
-              <p style={{ maxWidth: 560, margin: "18px auto 0", fontFamily: "'DM Sans', sans-serif", fontSize: 15.5, lineHeight: 1.7, color: "rgba(71,85,105,0.82)", textAlign: "center" }}>
-                The Zoom link and call details are on their way to your inbox — check your
-                spam folder if you don&apos;t see them in a few minutes.
-              </p>
-            </div>
+            {/* Post-booking bridge hero — the slot is taken, but we treat it as
+                unconfirmed until the visitor reaches us on WhatsApp. */}
+            <ConfirmHero />
 
             {/* What happens next */}
             <div className="sec-head reveal" style={{ marginTop: 48 }}>
@@ -44,8 +35,8 @@ export default function ThankYouPage() {
               <div className="numbox">
                 <div className="numbox-num">1</div>
                 <div className="numbox-content">
-                  <h3 className="numbox-title">Check Your Email</h3>
-                  <p className="numbox-body">Your confirmation and Zoom link are in your inbox. Add the call to your calendar so it doesn&apos;t slip.</p>
+                  <h3 className="numbox-title">Message Us On WhatsApp</h3>
+                  <p className="numbox-body">Tap the button above and send the message. Your slot is held, but it isn&apos;t confirmed until we hear from you.</p>
                 </div>
               </div>
               <div className="numbox">
@@ -79,11 +70,11 @@ export default function ThankYouPage() {
               <span className="hero-cred-pill"><span className="cpd" aria-hidden="true"></span>60+ Kilos Lost and Maintained</span>
             </div>
 
-            <div className="faq-closing reveal" style={{ marginTop: 36, textAlign: "center" }}>
-              <a className="cta-big" href="/">
-                Back to home
-                <span className="arrow">→</span>
-              </a>
+            {/* Closing CTA — the same WhatsApp hand-off as the hero, so anyone
+                who read to the bottom doesn't have to scroll back up. "Back to
+                home" sent them out of the funnel at exactly the wrong moment. */}
+            <div className="faq-closing cfm-closing reveal">
+              <ConfirmCta label="Click Here To Confirm" className="cfm-cta-closing" />
             </div>
           </div>
 

@@ -1,0 +1,254 @@
+/* ============================================================
+   CONFIRM STEP — post-booking WhatsApp bridge hero (/thank-you)
+   Paired with app/thank-you/ConfirmHero.tsx.
+
+   Tokens, the type scale and the ctaBreath / ctaShine keyframes all come
+   from funnel.css, which the root layout loads globally — this file only
+   adds what is specific to this screen. Written mobile-first.
+   ============================================================ */
+
+:root {
+  --cfm-wa: #25D366;
+  --cfm-wa-deep: #1EBE5A;
+  /* Height reserved at the foot of the page for the fixed mobile bar. */
+  --cfm-sticky-h: 84px;
+}
+
+.cfm {
+  position: relative;
+  padding: 26px 18px 30px;
+  text-align: center;
+}
+
+.cfm-inner {
+  max-width: 660px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+/* ---------- eyebrow ---------- */
+.cfm-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  /* Extra left padding so the dot's pulse ring (inset -4px) clears the border. */
+  padding: 7px 16px 7px 15px;
+  border-radius: 999px;
+  background: rgba(220, 38, 38, .08);
+  border: 1px solid rgba(220, 38, 38, .34);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--brand-deep, #B91C1C);
+}
+/* Same live dot as the landing hero's eyebrow pill. */
+.cfm-eyebrow .dot {
+  position: relative;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #DC2626;
+  box-shadow: 0 0 8px #DC2626;
+  flex-shrink: 0;
+}
+.cfm-eyebrow .dot::before {
+  content: "";
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  background: #DC2626;
+  opacity: .4;
+  animation: dot-pulse 2s ease-out infinite;
+}
+
+/* ---------- headline ---------- */
+.cfm-title {
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  font-size: clamp(26px, 6.4vw, 44px);
+  line-height: 1.14;
+  letter-spacing: -.025em;
+  color: var(--ink, #111827);
+  text-wrap: balance;
+}
+.cfm-alert {
+  color: var(--brand, #DC2626);
+  font-weight: 700;
+  font-style: italic;
+}
+
+/* ---------- avatar badge ---------- */
+.cfm-avatar-ring {
+  width: 124px;
+  height: 124px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(220, 38, 38, .22), transparent 70%),
+    var(--surface, #ffffff);
+  border: 2px solid rgba(220, 38, 38, .42);
+  box-shadow:
+    0 0 0 6px rgba(220, 38, 38, .08),
+    0 18px 40px -18px rgba(15, 23, 42, .45);
+}
+.cfm-avatar {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ---------- body copy ---------- */
+.cfm-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 48ch;
+}
+.cfm-copy p {
+  margin: 0;
+  font-family: "DM Sans", sans-serif;
+  font-size: 16.5px;
+  line-height: 1.68;
+  color: var(--ink-soft, #475569);
+}
+.cfm-copy strong { color: var(--ink, #111827); font-weight: 600; }
+
+/* ---------- CTA ---------- */
+.cfm-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 16px 38px;
+  border-radius: 999px;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(180deg, var(--cfm-wa) 0%, var(--cfm-wa-deep) 100%);
+  color: #ffffff;
+  font-family: "Poppins", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  text-decoration: none;
+  box-shadow:
+    0 18px 36px -12px rgba(30, 190, 90, .62),
+    0 0 0 1px rgba(30, 190, 90, .3),
+    0 1px 0 rgba(255, 255, 255, .22) inset;
+  transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
+  /* Reuses the landing page's existing CTA attention loop. */
+  animation: ctaBreath 3.4s ease-in-out infinite;
+}
+/* Shimmer sweep — same keyframes as .cta-big, tinted for the green ground. */
+.cfm-cta::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -60%;
+  width: 50%; height: 100%;
+  background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.42) 50%, rgba(255,255,255,0) 100%);
+  transform: skewX(-20deg);
+  animation: ctaShine 4s ease-in-out infinite;
+  animation-delay: 1s;
+  pointer-events: none;
+  z-index: 2;
+}
+.cfm-cta > * { position: relative; z-index: 3; }
+.cfm-cta:hover {
+  transform: translateY(-2px) scale(1.02);
+  animation: none;
+  filter: brightness(1.04);
+  color: #fff;
+  box-shadow: 0 22px 46px -12px rgba(30, 190, 90, .75);
+}
+.cfm-cta:active { transform: translateY(0) scale(.995); }
+.cfm-cta:focus-visible {
+  outline: 3px solid var(--brand, #DC2626);
+  outline-offset: 3px;
+}
+.cfm-cta-icon { width: 24px; height: 24px; flex: none; }
+.cfm-cta-hero { margin-top: 4px; }
+
+.cfm-cta-missing {
+  margin: 4px 0 0;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14.5px;
+  color: var(--brand-deep, #B91C1C);
+}
+.cfm-cta-missing code {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12.5px;
+}
+
+/* ---------- mobile sticky bar ---------- */
+/* Painted in its resting, visible position: no transform to animate in and no
+   .in class to wait on, so it is there the moment the page renders. */
+.cfm-sticky {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 255, 255, .94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(15, 23, 42, .1);
+  box-shadow: 0 -16px 40px -22px rgba(15, 23, 42, .5);
+}
+.cfm-cta-sticky {
+  width: 100%;
+  max-width: 460px;
+  font-size: 16.5px;
+  padding: 15px 22px;
+  min-height: 54px;
+}
+
+/* Clearance for the fixed bar belongs at the foot of the PAGE, not the foot of
+   the hero — putting it on .cfm left a dead gap between the hero and the next
+   section. This stylesheet is only linked on /thank-you, so scoping it to body
+   is safe. */
+@media (max-width: 767px) {
+  body { padding-bottom: calc(var(--cfm-sticky-h, 84px) + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Desktop: the hero button is the only CTA — drop the bar entirely. */
+@media (min-width: 768px) {
+  .cfm { padding: 34px 24px 20px; }
+  .cfm-sticky { display: none; }
+  .cfm-inner { gap: 22px; }
+  .cfm-avatar-ring { width: 136px; height: 136px; }
+  .cfm-avatar { width: 118px; height: 118px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfm-cta,
+  .cfm-cta::after,
+  .cfm-eyebrow .dot::before { animation: none !important; }
+  .cfm-cta { transition: none; }
+}
+
+/* ---------- closing CTA (foot of the page) ---------- */
+/* Replaces the old "Back to home" button, which pushed people out of the funnel
+   at the exact moment they still had a step left to complete. */
+.cfm-closing {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  padding-inline: 18px;
+}
+.cfm-cta-closing {
+  width: 100%;
+  max-width: 420px;
+}
+@media (min-width: 768px) {
+  .cfm-cta-closing { width: auto; min-width: 300px; }
+}
